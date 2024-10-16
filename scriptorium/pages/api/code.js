@@ -1,4 +1,7 @@
-const { executeCode } = require("../../utils/codeExecutionHelper");
+const {
+  executeInterpretedCode,
+  executeCompiledCode,
+} = require("../../utils/codeExecutionHelper");
 
 export default async function handler(req, res) {
   try {
@@ -7,6 +10,10 @@ export default async function handler(req, res) {
     }
 
     const { code, input, language } = req.body; // Get code, input, and language from the request
+
+    let compiledLanguage = false; // Check if the language requires compilation
+
+    let result;
 
     // Determine the appropriate command based on the language
     let command;
@@ -19,20 +26,23 @@ export default async function handler(req, res) {
         command = `python3 -c "${code}"`; // Execute Python code
         break;
       case "java":
-        command = `${code}`;
-        break;
       case "c":
-        command = `${code}`;
-        break;
       case "cpp":
-        command = `${code}`;
+        // Call the helper to handle compilation and execution for Java, C, C++
+        compiledLanguage = true;
+
         break;
       default:
         return res.status(400).json({ error: "Unsupported language" });
     }
 
     // Execute the code and pass the input (if provided)
-    const result = await executeCode(command, input);
+
+    if (compiledLanguage) {
+      result = await executeCompiledCode(language, code, input);
+    } else {
+      result = await executeInterpretedCode(command, input);
+    }
 
     // Return the result (stdout) to the client
     res.status(200).json({ output: result });
