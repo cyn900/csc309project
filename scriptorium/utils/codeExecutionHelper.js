@@ -1,3 +1,4 @@
+const { v4: uuidv4 } = require("uuid");
 const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
@@ -36,7 +37,6 @@ const executeInterpretedCode = (command, input = "") => {
   });
 };
 
-// Function to execute compiled languages like Java
 async function executeCompiledCode(language, code, input) {
   return new Promise((resolve, reject) => {
     const tempDir = path.join(__dirname, "temp"); // Temporary folder to store files
@@ -44,27 +44,30 @@ async function executeCompiledCode(language, code, input) {
       fs.mkdirSync(tempDir);
     }
 
-    // Java-specific: Set filename to "Main.java" to match the public class name
-    let fileName, filePath, compileCommand, runCommand;
+    // Generate a unique file name using UUID
+    const fileName = `program-${uuidv4()}`;
+    let filePath, compileCommand, runCommand, javaClassName;
 
     switch (language) {
       case "java":
-        fileName = "Main.java"; // Ensure the file name matches the public class name
-        filePath = path.join(tempDir, fileName);
+        javaClassName = `Main${uuidv4().replace(/-/g, "")}`; // Unique class name without hyphens
+        filePath = path.join(tempDir, `${javaClassName}.java`); // File will match the class name
+        code = code.replace(
+          /public class Main/,
+          `public class ${javaClassName}`
+        ); // Dynamically modify the class name in the code
         compileCommand = `javac ${filePath}`;
-        runCommand = `java -cp ${tempDir} Main`; // Run the Main class
+        runCommand = `java -cp ${tempDir} ${javaClassName}`; // Run the compiled class
         break;
       case "c":
-        fileName = `program-${Date.now()}.c`;
-        filePath = path.join(tempDir, fileName);
-        compileCommand = `gcc ${filePath} -o ${tempDir}/program`;
-        runCommand = `${tempDir}/program`;
+        filePath = path.join(tempDir, `${fileName}.c`);
+        compileCommand = `gcc ${filePath} -o ${tempDir}/${fileName}`;
+        runCommand = `${tempDir}/${fileName}`;
         break;
       case "cpp":
-        fileName = `program-${Date.now()}.cpp`;
-        filePath = path.join(tempDir, fileName);
-        compileCommand = `g++ ${filePath} -o ${tempDir}/program`;
-        runCommand = `${tempDir}/program`;
+        filePath = path.join(tempDir, `${fileName}.cpp`);
+        compileCommand = `g++ ${filePath} -o ${tempDir}/${fileName}`;
+        runCommand = `${tempDir}/${fileName}`;
         break;
       default:
         return reject("Unsupported compiled language");
@@ -108,11 +111,11 @@ async function executeCompiledCode(language, code, input) {
         }
 
         // Clean up temporary files
-        fs.unlinkSync(filePath);
+        fs.unlinkSync(filePath); // Delete the .java source file
         if (language === "java") {
-          fs.unlinkSync(path.join(tempDir, "Main.class")); // Clean up the Main class
+          fs.unlinkSync(path.join(tempDir, `${javaClassName}.class`)); // Delete the correct .class file
         } else {
-          fs.unlinkSync(path.join(tempDir, "program"));
+          fs.unlinkSync(path.join(tempDir, fileName)); // Delete compiled binaries for C/C++
         }
 
         resolve(output); // Return the output
