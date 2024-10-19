@@ -3,7 +3,7 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
-const executeInterpretedCode = (command, input = "") => {
+const executeInterpretedCode = (command, inputs = []) => {
   return new Promise((resolve, reject) => {
     const process = spawn(command, { shell: true });
 
@@ -13,6 +13,14 @@ const executeInterpretedCode = (command, input = "") => {
     // Capture stdout data
     process.stdout.on("data", (data) => {
       output += data.toString();
+
+      // Check if there's more input to send after receiving output
+      if (inputs.length > 0) {
+        const nextInput = inputs.shift(); // Get the next input from the array
+        process.stdin.write(nextInput + "\n"); // Send the next input to stdin
+      } else {
+        process.stdin.end(); // Close stdin when there's no more input
+      }
     });
 
     // Capture stderr data
@@ -29,15 +37,17 @@ const executeInterpretedCode = (command, input = "") => {
       }
     });
 
-    // Send input to the stdin stream
-    if (input) {
-      process.stdin.write(input);
+    // Start by sending the first input if provided
+    if (inputs.length > 0) {
+      const firstInput = inputs.shift(); // Get the first input
+      process.stdin.write(firstInput + "\n");
+    } else {
+      process.stdin.end(); // No input? End stdin
     }
-    process.stdin.end(); // Close stdin after writing input
   });
 };
 
-async function executeCompiledCode(language, code, input) {
+async function executeCompiledCode(language, code, inputs = []) {
   return new Promise((resolve, reject) => {
     const tempDir = path.join(__dirname, "temp"); // Temporary folder to store files
     if (!fs.existsSync(tempDir)) {
@@ -94,16 +104,19 @@ async function executeCompiledCode(language, code, input) {
       let output = "";
       runProcess.stdout.on("data", (data) => {
         output += data.toString();
+
+        // Check if more input is needed after receiving output
+        if (inputs.length > 0) {
+          const nextInput = inputs.shift(); // Get the next input
+          runProcess.stdin.write(nextInput + "\n"); // Send the input to stdin
+        } else {
+          runProcess.stdin.end(); // Close stdin if no more input
+        }
       });
 
       runProcess.stderr.on("data", (data) => {
         reject(`Execution error: ${data.toString()}`);
       });
-
-      if (input) {
-        runProcess.stdin.write(input);
-        runProcess.stdin.end();
-      }
 
       runProcess.on("close", (code) => {
         if (code !== 0) {
@@ -111,7 +124,7 @@ async function executeCompiledCode(language, code, input) {
         }
 
         // Clean up temporary files
-        fs.unlinkSync(filePath); // Delete the .java source file
+        fs.unlinkSync(filePath); // Delete the source file
         if (language === "java") {
           fs.unlinkSync(path.join(tempDir, `${javaClassName}.class`)); // Delete the correct .class file
         } else {
@@ -120,6 +133,14 @@ async function executeCompiledCode(language, code, input) {
 
         resolve(output); // Return the output
       });
+
+      // Send the first input if provided
+      if (inputs.length > 0) {
+        const firstInput = inputs.shift();
+        runProcess.stdin.write(firstInput + "\n");
+      } else {
+        runProcess.stdin.end(); // Close stdin if no input
+      }
     });
   });
 }
