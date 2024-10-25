@@ -13,14 +13,6 @@ const executeInterpretedCode = (command, inputs = []) => {
     // Capture stdout data
     process.stdout.on("data", (data) => {
       output += data.toString();
-
-      // Check if there's more input to send after receiving output
-      if (inputs.length > 0) {
-        const nextInput = inputs.shift(); // Get the next input from the array
-        process.stdin.write(nextInput + "\n"); // Send the next input to stdin
-      } else {
-        process.stdin.end(); // Close stdin when there's no more input
-      }
     });
 
     // Capture stderr data
@@ -37,37 +29,34 @@ const executeInterpretedCode = (command, inputs = []) => {
       }
     });
 
-    // Start by sending the first input if provided
+    // Send all inputs at once
     if (inputs.length > 0) {
-      const firstInput = inputs.shift(); // Get the first input
-      process.stdin.write(firstInput + "\n");
-    } else {
-      process.stdin.end(); // No input? End stdin
+      process.stdin.write(inputs.join("\n") + "\n"); // Send all inputs as a single block
     }
+    process.stdin.end(); // End stdin as no further input is expected
   });
 };
 
 async function executeCompiledCode(language, code, inputs = []) {
   return new Promise((resolve, reject) => {
-    const tempDir = path.join(__dirname, "temp"); // Temporary folder to store files
+    const tempDir = path.join(__dirname, "temp");
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir);
     }
 
-    // Generate a unique file name using UUID
     const fileName = `program-${uuidv4()}`;
     let filePath, compileCommand, runCommand, javaClassName;
 
     switch (language) {
       case "java":
-        javaClassName = `Main${uuidv4().replace(/-/g, "")}`; // Unique class name without hyphens
-        filePath = path.join(tempDir, `${javaClassName}.java`); // File will match the class name
+        javaClassName = `Main${uuidv4().replace(/-/g, "")}`;
+        filePath = path.join(tempDir, `${javaClassName}.java`);
         code = code.replace(
           /public class Main/,
           `public class ${javaClassName}`
-        ); // Dynamically modify the class name in the code
+        );
         compileCommand = `javac ${filePath}`;
-        runCommand = `java -cp ${tempDir} ${javaClassName}`; // Run the compiled class
+        runCommand = `java -cp ${tempDir} ${javaClassName}`;
         break;
       case "c":
         filePath = path.join(tempDir, `${fileName}.c`);
@@ -83,10 +72,8 @@ async function executeCompiledCode(language, code, inputs = []) {
         return reject("Unsupported compiled language");
     }
 
-    // Write the code to the file
     fs.writeFileSync(filePath, code);
 
-    // Step 1: Compile the code
     const compileProcess = spawn(compileCommand, { shell: true });
 
     compileProcess.stderr.on("data", (data) => {
@@ -98,49 +85,41 @@ async function executeCompiledCode(language, code, inputs = []) {
         return reject("Compilation failed");
       }
 
-      // Step 2: Execute the compiled code
+      // Execute the compiled code
       const runProcess = spawn(runCommand, { shell: true });
 
       let output = "";
+      let errorOutput = "";
+
       runProcess.stdout.on("data", (data) => {
         output += data.toString();
-
-        // Check if more input is needed after receiving output
-        if (inputs.length > 0) {
-          const nextInput = inputs.shift(); // Get the next input
-          runProcess.stdin.write(nextInput + "\n"); // Send the input to stdin
-        } else {
-          runProcess.stdin.end(); // Close stdin if no more input
-        }
       });
 
       runProcess.stderr.on("data", (data) => {
-        reject(`Execution error: ${data.toString()}`);
+        errorOutput += data.toString();
       });
 
       runProcess.on("close", (code) => {
         if (code !== 0) {
-          reject("Execution failed");
+          reject(`Execution error: ${errorOutput}`);
+        } else {
+          resolve(output);
         }
 
         // Clean up temporary files
-        fs.unlinkSync(filePath); // Delete the source file
+        fs.unlinkSync(filePath);
         if (language === "java") {
-          fs.unlinkSync(path.join(tempDir, `${javaClassName}.class`)); // Delete the correct .class file
+          fs.unlinkSync(path.join(tempDir, `${javaClassName}.class`));
         } else {
-          fs.unlinkSync(path.join(tempDir, fileName)); // Delete compiled binaries for C/C++
+          fs.unlinkSync(path.join(tempDir, fileName));
         }
-
-        resolve(output); // Return the output
       });
 
-      // Send the first input if provided
+      // Send all inputs at once, if provided
       if (inputs.length > 0) {
-        const firstInput = inputs.shift();
-        runProcess.stdin.write(firstInput + "\n");
-      } else {
-        runProcess.stdin.end(); // Close stdin if no input
+        runProcess.stdin.write(inputs.join("\n") + "\n"); // Send all inputs in one go
       }
+      runProcess.stdin.end(); // Close stdin after sending inputs
     });
   });
 }
