@@ -35,10 +35,11 @@ export function verifyToken(token) {
   }
 
   token = token.split(" ")[1];
-
+  console.log(token);
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, ACCESS_TOKEN_SECRET);
   } catch (err) {
+    console.log(err);
     return null;
   }
 }
