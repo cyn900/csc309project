@@ -12,3 +12,88 @@ datasource db {
   provider = "sqlite"
   url      = "file:./dev.db"
 }
+
+model User {
+  uID            Int             @id @default(autoincrement())
+  firstName      String
+  lastName       String
+  email          String          @unique
+  password       String          // hashed before storing in db
+  avatar         String?         // URL to the avatar image
+  phoneNum       Int?
+  role           String          // admin or reg
+  blogs          Blog[]          @relation("UserBlogs")
+  templates      Template[]      @relation("UserTemplates")
+  comments       Comment[]
+  commentReports CommentReport[]
+  blogReports    BlogReport[]
+}
+
+model Tag {
+  id         Int          @id @default(autoincrement())
+  value      String
+  templates  Template[]   @relation("TemplateTags")
+  blogs      Blog[]       @relation("BlogTags")
+}
+
+model Template {
+  tID         Int         @id @default(autoincrement())
+  title       String
+  explanation String?
+  tags        Tag[]       @relation("TemplateTags")
+  code        String?
+  fork        Boolean
+  uID         Int
+  user        User        @relation("UserTemplates", fields: [uID], references: [uID])
+  comments    Comment[]
+  blogs       Blog[]      @relation("BlogTemplates")
+}
+
+model Blog {
+  bID         Int         @id @default(autoincrement())
+  title       String
+  description String?
+  tags        Tag[]       @relation("BlogTags")
+  templates   Template[]  @relation("BlogTemplates")
+  upvote      Int
+  downvote    Int
+  commentNum  Int         // number of total of comments (including subComments)
+  hidden      Boolean
+  comments    Comment[]   // only the first level comments
+  uID         Int
+  user        User        @relation("UserBlogs", fields: [uID], references: [uID])
+  blogReports BlogReport[]
+}
+
+model Comment {
+  cID           Int         @id @default(autoincrement())
+  hidden        Boolean
+  subComments   Comment[]   @relation("subComments")
+  uID           Int
+  user          User        @relation(fields: [uID], references: [uID])
+  bID           Int
+  blog          Blog        @relation(fields: [bID], references: [bID])
+  pID           Int?        // Parent comment ID, null if top-level comment
+  parentComment Comment?    @relation("subComments", fields: [pID], references: [cID])
+  commentReports CommentReport[]
+  template      Template?   @relation(fields: [tID], references: [tID])
+  tID           Int?
+}
+
+model CommentReport {
+  crID         Int          @id @default(autoincrement())
+  explanation  String
+  cID          Int
+  comment      Comment      @relation(fields: [cID], references: [cID])
+  uID          Int
+  user         User         @relation(fields: [uID], references: [uID])
+}
+
+model BlogReport {
+  brID         Int          @id @default(autoincrement())
+  explanation  String
+  bID          Int
+  blog         Blog         @relation(fields: [bID], references: [bID])
+  uID          Int
+  user         User         @relation(fields: [uID], references: [uID])
+}
