@@ -35,8 +35,8 @@ export default async function handler(req, res) {
         lastName,
         email,
         password: hashedPassword,
-        avatar,  // This will be `undefined` if not provided, which is fine for optional fields
-        phoneNum, // Same as avatar
+        vatar: avatar ? avatar : 'avatar/default.jpg',  // Default to 'avatar/default.jpg' if not provided
+        phoneNum, // undefined if not provided
         role
       },
       select: {
