@@ -27,6 +27,8 @@ model User {
   comments       Comment[]
   commentReports CommentReport[]
   blogReports    BlogReport[]
+   upvoted    Blog[] @relation("Upvotes")
+  downvoted  Blog[] @relation("Downvotes")
 }
 
 model Tag {
@@ -57,7 +59,9 @@ model Blog {
   templates   Template[]  @relation("BlogTemplates")
   upvote      Int
   downvote    Int
-  commentNum  Int         // number of total of comments (including subComments)
+  upvoters    User[]      @relation("Upvotes")
+  downvoters  User[]      @relation("Downvotes")
+  commentNum  Int         // number of total comments (including subComments)
   hidden      Boolean
   comments    Comment[]   // only the first level comments
   uID         Int

@@ -64,7 +64,9 @@ export default async function handler(req, res) {
             include: {
                 tags: true,
                 templates: true,
-                user: true
+                user: true,
+                upvoters: true,
+                downvoters: true 
             },
             orderBy: method === 'controversial' ? {
                 _count: {

@@ -23,7 +23,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ message: 'User not found' });
     }
 
-    const { title, description, tags, templates, upvote = 0, downvote = 0, commentNum = 0, hidden = false } = req.body;
+    const { title, description, tags, templates, upvote = 0, downvote = 0, commentNum = 0, hidden = false} = req.body;
 
     try {
         const newBlog = await prisma.blog.create({
