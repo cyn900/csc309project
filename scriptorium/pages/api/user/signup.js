@@ -1,97 +1,102 @@
-import { hashPassword } from "@/utils/auth";
-import prisma from "@/utils/db";
 import multer from 'multer';
 import path from 'path';
+import { hashPassword } from "@/utils/auth";
+import prisma from "@/utils/db";
 
-// Set storage engine
+// Configure multer storage
 const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, 'public/avatar/')  // Path to store the files within the public directory
-  },
-  filename: function(req, file, cb) {
-    // Generates file name with a timestamp to avoid name conflicts
-    cb(null, Date.now() + '-' + path.extname(file.originalname));
-  }
+    destination: function(req, file, cb) {
+        cb(null, 'public/avatar/');
+    },
+    filename: function(req, file, cb) {
+        cb(null, Date.now() + path.extname(file.originalname)); // Unique file name
+    }
 });
 
 const upload = multer({
-  storage: storage,
-  limits: { fileSize: 1000000 },  // 1MB limit
-  fileFilter: function(req, file, cb) {
-    // Allow only images
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
+    storage: storage,
+    limits: { fileSize: 5000000 }, // Limit file size to 5MB for images
+    fileFilter: function(req, file, cb) {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed!'), false);
+        }
     }
-  }
-}).single('avatar');  // Ensure the form's file input field has name="avatar"
+}).single('avatar'); // Handle one file upload named 'avatar'
+
+// Middleware to handle different content types including JSON and form-data
+export const config = {
+    api: {
+        bodyParser: false // Disabling bodyParser to use multer and manual JSON parsing
+    }
+};
 
 export default function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  console.log("Headers:", req.headers); // Log headers to see what is being set.
-
-  upload(req, res, async (err) => {
-    if (err instanceof multer.MulterError) {
-      console.error("Upload Error:", err);
-      return res.status(500).json({ message1: err.message });
-    } else if (err) {
-      console.error("Other Error:", err);
-      return res.status(500).json({ message2: err.message });
+    // Manually handle JSON parsing if needed
+    if (req.headers['content-type']?.includes('application/json')) {
+        let data = '';
+        req.on('data', chunk => {
+            data += chunk;
+        });
+        req.on('end', () => {
+            req.body = JSON.parse(data);
+            postHandler(req, res);
+        });
+    } else {
+        // Use multer for 'multipart/form-data'
+        upload(req, res, (err) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            postHandler(req, res);
+        });
     }
+}
 
+function postHandler(req, res) {
     const { firstName, lastName, email, password, phoneNum, role = "user" } = req.body;
 
     if (!firstName || !lastName || !email || !password) {
-      return res.status(400).json({
-        message: "Missing required fields: first name, last name, email, and password are all required."
-      });
+        return res.status(400).json({ error: "All fields are required." });
     }
 
-    try {
-      const existingUser = await prisma.user.findUnique({
-        where: { email }
-      });
-
-      if (existingUser) {
-        return res.status(409).json({ message: "User already exists with the provided email." });
-      }
-
-      const hashedPassword = await hashPassword(password);
-      const avatarUrl = req.file ? req.file.path : 'public/avatar/default.jpg';
-
-      const user = await prisma.user.create({
-        data: {
-          firstName,
-          lastName,
-          email,
-          password: hashedPassword,
-          avatar: avatarUrl,
-          phoneNum,
-          role
-        },
-        select: {
-          uID: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          avatar: true,
-          phoneNum: true,
-          role: true
+    prisma.user.findUnique({ where: { email } }).then(existingUser => {
+        if (existingUser) {
+            return res.status(409).json({ error: "User already exists with this email." });
         }
-      });
 
-      res.status(201).json({
-        message: "User successfully registered.",
-        user
-      });
+        hashPassword(password).then(hashedPassword => {
+            const avatarUrl = req.file ? `/${req.file.path}` : '/avatar/default.jpg';
 
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ message: "Internal server error during user registration." });
-    }
-  });
+            prisma.user.create({
+                data: {
+                    firstName,
+                    lastName,
+                    email,
+                    password: hashedPassword,
+                    avatar: avatarUrl,
+                    phoneNum,
+                    role
+                }
+            }).then(user => {
+                res.status(201).json({ message: "User registered successfully", user: {
+                    id: user.id,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    email: user.email,
+                    avatar: user.avatar
+                }});
+            }).catch(error => {
+                console.error("Registration error:", error);
+                res.status(500).json({ error: "Internal server error during registration." });
+            });
+        }).catch(error => {
+            console.error("Password hashing error:", error);
+            res.status(500).json({ error: "Internal server error during password hashing." });
+        });
+    }).catch(error => {
+        console.error("Database access error:", error);
+        res.status(500).json({ error: "Internal server error during database access." });
+    });
 }
