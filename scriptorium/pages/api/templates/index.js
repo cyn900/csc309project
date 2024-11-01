@@ -59,6 +59,14 @@ const handlePost = async (req, res) => {
         code,
         fork: fork || false,
         uID,
+        ...(tags && {
+          tags: {
+            connectOrCreate: tags.map((tag) => ({
+              where: { value: tag },
+              create: { value: tag },
+            })),
+          },
+        }),
       },
     });
 
@@ -110,6 +118,55 @@ const handleDelete = async (req, res) => {
   }
 };
 
+async function handleUpdate(req, res) {
+  const { title, explanation, tags, code, fork, uID, tID } = req.body;
+
+  if (!tID) {
+    return res.status(400).json({ error: "Template ID (tID) is required" });
+  }
+
+  try {
+    // Find the template by tID
+    const existingTemplate = await prisma.template.findUnique({
+      where: { tID: parseInt(tID) },
+    });
+
+    if (!existingTemplate) {
+      return res.status(404).json({ error: "Template not found" });
+    }
+
+    // Update the template
+    const updatedTemplate = await prisma.template.update({
+      where: { tID: parseInt(tID) },
+      data: {
+        title,
+        explanation,
+        code,
+        fork,
+        uID,
+        ...(tags && {
+          tags: {
+            connectOrCreate: tags.map((tag) => ({
+              where: { value: tag },
+              create: { value: tag },
+            })),
+          },
+        }),
+      },
+    });
+
+    res.status(200).json({
+      message: "Template updated successfully",
+      template: updatedTemplate,
+    });
+  } catch (error) {
+    console.error("Error updating template:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while updating the template" });
+  }
+}
+
 export default function handler(req, res) {
   if (req.method === "GET") {
     handleGet(req, res);
@@ -117,8 +174,10 @@ export default function handler(req, res) {
     handlePost(req, res);
   } else if (req.method === "DELETE") {
     handleDelete(req, res);
+  } else if (req.method === "PUT") {
+    handleUpdate(req, res);
   } else {
-    res.setHeader("Allow", ["GET", "POST", "DELETE"]);
+    res.setHeader("Allow", ["GET", "POST", "DELETE", "PUT"]);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
