@@ -53,6 +53,8 @@ export default async function handler(req, res) {
         });
     }
 
+    andConditions.push({hidden: false});
+
     try {
         const blogs = await prisma.blog.findMany({
             where: {
