@@ -6,54 +6,37 @@ export default async function handler(req, res) {
         return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 
-    // Extract query parameters
-    const { title, content, tag, template, method } = req.query;
+    // Extract query parameters for filtering and pagination
+    const { title, content, tag, template, method, page = 1 } = req.body;
+    const pageSize = 5; // Set the number of items per page
+    const skip = (parseInt(page) - 1) * pageSize; // Calculate the number of items to skip
 
+    console.log('Search query:', { title, content, tag, template, method, page });
     // Dynamically create conditions based on provided parameters
     const orConditions = [];
     const andConditions = [];
 
     if (title) {
-        orConditions.push({
-            title: {
-                contains: title.toLowerCase()
-            }
-        });
+        orConditions.push({ title: { contains: title.toLowerCase() } });
     }
 
     if (content) {
-        orConditions.push({
-            description: {
-                contains: content.toLowerCase()
-            }
-        });
+        orConditions.push({ description: { contains: content.toLowerCase() } });
     }
 
     if (tag) {
         andConditions.push({
-            tags: {
-                some: {
-                    name: {
-                        contains: tag.toLowerCase()
-                    }
-                }
-            }
+            tags: { some: { name: { contains: tag.toLowerCase() } } }
         });
     }
 
     if (template) {
         andConditions.push({
-            templates: {
-                some: {
-                    code: {
-                        contains: template.toLowerCase()
-                    }
-                }
-            }
+            templates: { some: { code: { contains: template.toLowerCase() } } }
         });
     }
 
-    andConditions.push({hidden: false});
+    andConditions.push({ hidden: false });
 
     try {
         const blogs = await prisma.blog.findMany({
@@ -78,7 +61,9 @@ export default async function handler(req, res) {
                 }
             } : {
                 upvote: 'desc'
-            }
+            },
+            skip: skip, // Skip the previous pages results
+            take: pageSize // Take only the limit per page
         });
 
         res.status(200).json(blogs);

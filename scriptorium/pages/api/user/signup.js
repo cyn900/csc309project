@@ -67,7 +67,7 @@ function postHandler(req, res) {
         }
 
         hashPassword(password).then(hashedPassword => {
-            const avatarUrl = req.file ? `/${req.file.path}` : '/avatar/default.jpg';
+            const avatarUrl = req.file ? `/${req.file.path}` : 'public/avatar/default.jpg';
 
             prisma.user.create({
                 data: {
