@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     }
 
     // Parse blogId from URL parameters
-    const { bID } = req.body;
+    const { bID } = req.query;
 
     const blog = await prisma.blog.findUnique({
         where: { bID: parseInt(bID, 10) }

@@ -21,7 +21,8 @@ export default async function handler(req, res) {
         return res.status(404).json({ message: 'User not found' });
     }
 
-    const { bID, title, description, tags, templates, hidden } = req.body;
+    const { bID } = req.query;  // Retrieve blog ID from URL parameters
+    const { title, description, tags, templates, hidden } = req.body;
 
     // Check if the blog belongs to the user
     const blog = await prisma.blog.findUnique({
