@@ -10,10 +10,9 @@ const executeInterpretedCode = (command, inputs = [], timeout = 10000) => {
     let output = "";
     let errorOutput = "";
 
-    // Set timeout for the process
     const timer = setTimeout(() => {
       process.kill(); // Terminate the process if timeout is reached
-      reject(new Error("Execution timed out"));
+      reject({ status: 400, message: "Execution timed out" });
     }, timeout);
 
     // Capture stdout data
