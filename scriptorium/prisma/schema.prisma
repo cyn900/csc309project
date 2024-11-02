@@ -23,8 +23,8 @@ model User {
   blogReports    BlogReport[]
   upvoted    Blog[] @relation("Upvotes")
   downvoted  Blog[] @relation("Downvotes")
-  upvodtedComment Comment[] @relation("UpvotesComment")
-  downvodtedComment Comment[] @relation("DownvotesComment")
+  upvotedComment Comment[] @relation("UpvotesComment")
+  downvotedComment Comment[] @relation("DownvotesComment")
 }
 
 model Tag {

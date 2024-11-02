@@ -27,8 +27,8 @@ async function createAdmin() {
         blogReports: { connect: [] },
         upvoted: { connect: [] },
         downvoted: { connect: [] },
-        upvodtedComment: { connect: [] },
-        downvodtedComment: { connect: [] },
+        upvotedComment: { connect: [] },
+        downvotedComment: { connect: [] },
       },
     });
 
