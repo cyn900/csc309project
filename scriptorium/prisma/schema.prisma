@@ -67,6 +67,7 @@ model Blog {
 model Comment {
   cID           Int         @id @default(autoincrement())
   hidden        Boolean
+  content       String
   subComments   Comment[]   @relation("subComments")
   uID           Int
   user          User        @relation(fields: [uID], references: [uID])
