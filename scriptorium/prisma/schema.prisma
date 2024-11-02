@@ -40,7 +40,7 @@ model Tag {
 
 model Template {
   tID         Int         @id @default(autoincrement())
-  title       String
+  title       String      @unique
   explanation String?
   tags        Tag[]       @relation("TemplateTags")
   code        String?
