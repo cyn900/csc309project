@@ -6,59 +6,77 @@ export default async function handler(req, res) {
         return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 
-    // Extract query parameters for filtering and pagination
-    const { title, content, tag, template, method, page = 1 } = req.body;
+    let { title, content, tags, templates, method, page = 1 } = req.body;
 
-    // Validate data types
+    // Validate data type for title and content
     if ((title && typeof title !== 'string') ||
-        (content && typeof content !== 'string') ||
-        (tag && !Array.isArray(tag)) ||
-        (template && !Array.isArray(template)) ||
-        (method && typeof method !== 'string') ||
-        (!Number.isInteger(page))) {
-        return res.status(400).json({ message: "Incorrect data types provided." });
+        (content && typeof content !== 'string')){
+        return res.status(400).json({ message: "Incorrect data types provided for title and content." });
+    }
+
+    // Convert page to integer
+    page = parseInt(page, 10);
+    if (isNaN(page) || page < 1) {
+        return res.status(400).json({ message: "Page must be a positive integer" });
     }
 
     const pageSize = 5; // Set the number of items per page
-    const skip = (parseInt(page) - 1) * pageSize; // Calculate the number of items to skip
+    const skip = (page - 1) * pageSize; // Calculate the number of items to skip
 
-    console.log('Search query:', { title, content, tag, template, method, page });
+    const conditions = [{ hidden: false }]; // Default condition to filter hidden blogs
 
-    const conditions = [];
+    if (title) conditions.push({ title: { contains: title } });
+    if (content) conditions.push({ description: { contains: content } });
 
-    if (title) {
-        conditions.push({ title: { contains: title.toLowerCase() } });
+    // Try to parse tags and templates if they are provided as strings
+    try {
+        if (tags && typeof tags === 'string') tags = JSON.parse(tags);
+        if (templates && typeof templates === 'string') templates = JSON.parse(templates);
+    } catch (err) {
+        return res.status(400).json({ message: "Invalid JSON format for tags or templates" });
     }
 
-    if (content) {
-        conditions.push({ description: { contains: content.toLowerCase() } });
+    // Ensure tags and templates are arrays
+    if (tags && !Array.isArray(tags)) {
+        return res.status(400).json({ message: "Tags must be an array" });
+    }
+    if (templates && !Array.isArray(templates)) {
+        return res.status(400).json({ message: "Templates must be an array" });
     }
 
-    if (tag) {
+    // Build conditions based on tags and templates
+    if (tags && tags.length) {
         conditions.push({
-            tags: { some: { name: { contains: tag.toLowerCase() } } }
+            tags: {
+                some: {
+                    value: {
+                        in: tags
+                    }
+                }
+            }
         });
     }
-
-    if (template) {
+    if (templates && templates.length) {
         conditions.push({
-            templates: { some: { code: { contains: template.toLowerCase() } } }
+            templates: {
+                some: {
+                    title: {
+                        in: templates
+                    }
+                }
+            }
         });
     }
-
-    conditions.push({ hidden: false });
 
     try {
         const blogs = await prisma.blog.findMany({
-            where: {
-                AND: conditions.length > 0 ? conditions : undefined,
-            },
+            where: { AND: conditions },
             include: {
                 tags: true,
                 templates: true,
                 user: true,
                 upvoters: true,
-                downvoters: true 
+                downvoters: true
             },
             orderBy: method === 'controversial' ? {
                 _count: {
@@ -71,8 +89,8 @@ export default async function handler(req, res) {
             } : {
                 upvote: 'desc'
             },
-            skip: skip, // Skip the previous pages results
-            take: pageSize // Take only the limit per page
+            skip,
+            take: pageSize
         });
 
         res.status(200).json(blogs);
