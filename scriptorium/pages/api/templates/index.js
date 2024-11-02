@@ -1,4 +1,5 @@
 import prisma from "@/utils/db";
+import { isLoggedIn } from "../../../utils/auth";
 
 const handleGet = async (req, res) => {
   const { page = 1, limit = 10, search = "" } = req.query;
@@ -42,7 +43,7 @@ const handleGet = async (req, res) => {
   }
 };
 
-const handlePost = async (req, res) => {
+const handlePost = isLoggedIn(async (req, res) => {
   const { title, explanation, tags, code, fork, uID } = req.body;
 
   if (!title || !uID) {
@@ -79,9 +80,9 @@ const handlePost = async (req, res) => {
       .status(500)
       .json({ error: "An error occurred while creating the template" });
   }
-};
+});
 
-const handleDelete = async (req, res) => {
+const handleDelete = isLoggedIn(async (req, res) => {
   const { tID, uID } = req.body;
 
   if (!tID || !uID) {
@@ -116,9 +117,9 @@ const handleDelete = async (req, res) => {
       .status(500)
       .json({ error: "An error occurred while deleting the template" });
   }
-};
+});
 
-async function handleUpdate(req, res) {
+const handleUpdate = isLoggedIn(async (req, res) => {
   const { title, explanation, tags, code, fork, uID, tID } = req.body;
 
   if (!tID) {
@@ -165,7 +166,7 @@ async function handleUpdate(req, res) {
       .status(500)
       .json({ error: "An error occurred while updating the template" });
   }
-}
+});
 
 export default function handler(req, res) {
   if (req.method === "GET") {
