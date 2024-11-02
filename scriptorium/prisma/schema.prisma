@@ -52,16 +52,14 @@ model Blog {
   description String?
   tags        Tag[]       @relation("BlogTags")
   templates   Template[]  @relation("BlogTemplates")
-  upvote      Int
-  downvote    Int
   upvoters    User[]      @relation("Upvotes")
   downvoters  User[]      @relation("Downvotes")
   commentNum  Int         // number of total comments (including subComments)
   hidden      Boolean
-  comments    Comment[]   // only the first level comments
+  comments    Comment[]   @relation("BlogComments")
   uID         Int
   user        User        @relation("UserBlogs", fields: [uID], references: [uID])
-  blogReports BlogReport[]
+  blogReports BlogReport[] @relation("blogReports")
 }
 
 model Comment {
@@ -72,12 +70,10 @@ model Comment {
   uID           Int
   user          User        @relation(fields: [uID], references: [uID])
   bID           Int
-  blog          Blog        @relation(fields: [bID], references: [bID])
+  blog          Blog        @relation("BlogComments",fields: [bID], references: [bID], onDelete: Cascade)
   pID           Int?        // Parent comment ID, null if top-level comment
-  parentComment Comment?    @relation("subComments", fields: [pID], references: [cID])
+  parentComment Comment?    @relation("subComments", fields: [pID], references: [cID], onDelete: Cascade)
   commentReports CommentReport[]
-  upvote      Int
-  downvote    Int
   upvoters    User[]      @relation("UpvotesComment")
   downvoters  User[]      @relation("DownvotesComment")
 }
@@ -95,7 +91,7 @@ model BlogReport {
   brID         Int          @id @default(autoincrement())
   explanation  String
   bID          Int
-  blog         Blog         @relation(fields: [bID], references: [bID])
+  blog         Blog         @relation("blogReports", fields: [bID], references: [bID], onDelete: Cascade)
   uID          Int
   user         User         @relation(fields: [uID], references: [uID])
 }

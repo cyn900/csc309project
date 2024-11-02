@@ -6,7 +6,7 @@ export default async function handler(req, res) {
         return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 
-    let { title, content, tags, templates, method, page = 1 } = req.query;
+    let { title, content, tags, templates, method = "popular", page = 1 } = req.body;
 
     // Validate data type for title and content
     if ((title && typeof title !== 'string') ||
@@ -16,10 +16,6 @@ export default async function handler(req, res) {
 
     // Convert page to integer
     page = parseInt(page, 10);
-    if (isNaN(page) || page < 1) {
-        return res.status(400).json({ message: "Page must be a positive integer" });
-    }
-
     const pageSize = 5; // Set the number of items per page
     const skip = (page - 1) * pageSize; // Calculate the number of items to skip
 
@@ -42,14 +38,6 @@ export default async function handler(req, res) {
     }
     if (templates && !Array.isArray(templates)) {
         return res.status(400).json({ message: "Templates must be an array" });
-    }
-
-    // Check if all elements in tags and templates are strings
-    if (tags && !tags.every(tag => typeof tag === 'string')) {
-        return res.status(400).json({ message: "All tags must be strings." });
-    }
-    if (templates && !templates.every(template => typeof template === 'string')) {
-        return res.status(400).json({ message: "All templates must be strings." });
     }
 
     // Build conditions based on tags and templates
@@ -76,7 +64,6 @@ export default async function handler(req, res) {
         });
     }
 
-    console.log('Conditions:', conditions);
     try {
         const blogs = await prisma.blog.findMany({
             where: { AND: conditions },
@@ -87,21 +74,21 @@ export default async function handler(req, res) {
                 upvoters: true,
                 downvoters: true
             },
-            orderBy: method === 'controversial' ? {
-                _count: {
-                    select: { upvote: true, downvote: true },
-                    orderBy: {
-                        upvote: 'desc',
-                        downvote: 'desc'
-                    }
-                }
-            } : {
-                upvote: 'desc'
-            },
             skip,
             take: pageSize
         });
 
+        // Sorting based on the 'method'
+        switch (method) {
+            case 'controversial':
+                blogs.sort((a, b) => (b.upvoters.length + b.downvoters.length + b.comments.length) -
+                                     (a.upvoters.length + a.downvoters.length + a.comments.length));
+                break;
+            default: // Default to 'popular'
+                blogs.sort((a, b) => b.upvoters.length - a.upvoters.length);
+                break;
+        }
+        
         res.status(200).json(blogs);
     } catch (error) {
         console.error('Search query failed:', error);
