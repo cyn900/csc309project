@@ -9,14 +9,14 @@ export default async function handler(req, res) {
     // Extract query parameters for filtering and pagination
     const { title, content, tag, template, method, page = 1 } = req.body;
 
-    // Check the type of each field
-    if (title && typeof title !== 'string' ||
-        content && typeof content !== 'string' ||
-        tag && typeof tag !== 'string' ||
-        template && typeof template !== 'string' ||
-        method && typeof method !== 'string' ||
-        page && typeof parseInt(page) !== 'number') {
-        return res.status(400).json({ message: "Invalid data types" });
+    // Validate data types
+    if ((title && typeof title !== 'string') ||
+        (content && typeof content !== 'string') ||
+        (tag && !Array.isArray(tag)) ||
+        (template && !Array.isArray(template)) ||
+        (method && typeof method !== 'string') ||
+        (!Number.isInteger(page))) {
+        return res.status(400).json({ message: "Incorrect data types provided." });
     }
 
     const pageSize = 5; // Set the number of items per page
