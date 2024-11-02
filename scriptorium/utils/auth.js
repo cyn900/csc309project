@@ -41,6 +41,20 @@ export function verifyToken(token) {
   }
 }
 
+export function verifyRefreshToken(token) {
+  if (!token?.startsWith("Bearer ")) {
+    return null;
+  }
+
+  token = token.split(" ")[1];
+  try {
+    return jwt.verify(token, REFRESH_TOKEN_SECRET);
+  } catch (err) {
+    console.log(err);
+    return null;
+  }
+}
+
 export function isLoggedIn(handler) {
   return async (req, res) => {
     const token = req.headers.authorization?.split(" ")[1];
