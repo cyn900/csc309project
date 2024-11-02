@@ -8,41 +8,50 @@ export default async function handler(req, res) {
 
     // Extract query parameters for filtering and pagination
     const { title, content, tag, template, method, page = 1 } = req.body;
+
+    // Check the type of each field
+    if (title && typeof title !== 'string' ||
+        content && typeof content !== 'string' ||
+        tag && typeof tag !== 'string' ||
+        template && typeof template !== 'string' ||
+        method && typeof method !== 'string' ||
+        page && typeof parseInt(page) !== 'number') {
+        return res.status(400).json({ message: "Invalid data types" });
+    }
+
     const pageSize = 5; // Set the number of items per page
     const skip = (parseInt(page) - 1) * pageSize; // Calculate the number of items to skip
 
     console.log('Search query:', { title, content, tag, template, method, page });
-    // Dynamically create conditions based on provided parameters
-    const orConditions = [];
-    const andConditions = [];
+
+    const conditions = [];
 
     if (title) {
-        orConditions.push({ title: { contains: title.toLowerCase() } });
+        conditions.push({ title: { contains: title.toLowerCase() } });
     }
 
     if (content) {
-        orConditions.push({ description: { contains: content.toLowerCase() } });
+        conditions.push({ description: { contains: content.toLowerCase() } });
     }
 
     if (tag) {
-        andConditions.push({
+        conditions.push({
             tags: { some: { name: { contains: tag.toLowerCase() } } }
         });
     }
 
     if (template) {
-        andConditions.push({
+        conditions.push({
             templates: { some: { code: { contains: template.toLowerCase() } } }
         });
     }
 
-    andConditions.push({ hidden: false });
+    conditions.push({ hidden: false });
 
     try {
         const blogs = await prisma.blog.findMany({
             where: {
-                AND: andConditions.length > 0 ? andConditions : undefined,
-                OR: orConditions.length > 0 ? orConditions : undefined,
+                AND: conditions.length > 0 ? conditions : undefined,
             },
             include: {
                 tags: true,
