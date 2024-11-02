@@ -21,8 +21,10 @@ model User {
   comments       Comment[]
   commentReports CommentReport[]
   blogReports    BlogReport[]
-   upvoted    Blog[] @relation("Upvotes")
+  upvoted    Blog[] @relation("Upvotes")
   downvoted  Blog[] @relation("Downvotes")
+  upvodtedComment Comment[] @relation("UpvotesComment")
+  downvodtedComment Comment[] @relation("DownvotesComment")
 }
 
 model Tag {
@@ -41,7 +43,6 @@ model Template {
   fork        Boolean
   uID         Int
   user        User        @relation("UserTemplates", fields: [uID], references: [uID])
-  comments    Comment[]
   blogs       Blog[]      @relation("BlogTemplates")
 }
 
@@ -74,8 +75,10 @@ model Comment {
   pID           Int?        // Parent comment ID, null if top-level comment
   parentComment Comment?    @relation("subComments", fields: [pID], references: [cID])
   commentReports CommentReport[]
-  template      Template?   @relation(fields: [tID], references: [tID])
-  tID           Int?
+  upvote      Int
+  downvote    Int
+  upvoters    User[]      @relation("UpvotesComment")
+  downvoters  User[]      @relation("DownvotesComment")
 }
 
 model CommentReport {
