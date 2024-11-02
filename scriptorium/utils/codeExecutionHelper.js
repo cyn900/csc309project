@@ -3,12 +3,18 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
-const executeInterpretedCode = (command, inputs = []) => {
+const executeInterpretedCode = (command, inputs = [], timeout = 10000) => {
   return new Promise((resolve, reject) => {
     const process = spawn(command, { shell: true });
 
     let output = "";
     let errorOutput = "";
+
+    // Set timeout for the process
+    const timer = setTimeout(() => {
+      process.kill(); // Terminate the process if timeout is reached
+      reject(new Error("Execution timed out"));
+    }, timeout);
 
     // Capture stdout data
     process.stdout.on("data", (data) => {
@@ -22,6 +28,7 @@ const executeInterpretedCode = (command, inputs = []) => {
 
     // Handle process exit
     process.on("close", (code) => {
+      clearTimeout(timer); // Clear the timeout on close
       if (code !== 0) {
         reject(`Error: ${errorOutput || `Process exited with code ${code}`}`);
       } else {
@@ -37,7 +44,12 @@ const executeInterpretedCode = (command, inputs = []) => {
   });
 };
 
-async function executeCompiledCode(language, code, inputs = []) {
+async function executeCompiledCode(
+  language,
+  code,
+  inputs = [],
+  timeout = 30000
+) {
   return new Promise((resolve, reject) => {
     const tempDir = path.join(__dirname, "temp");
     if (!fs.existsSync(tempDir)) {
@@ -76,11 +88,19 @@ async function executeCompiledCode(language, code, inputs = []) {
 
     const compileProcess = spawn(compileCommand, { shell: true });
 
+    // Set a timeout for compilation
+    const compileTimer = setTimeout(() => {
+      compileProcess.kill();
+      reject(new Error("Compilation timed out"));
+    }, timeout);
+
     compileProcess.stderr.on("data", (data) => {
+      clearTimeout(compileTimer);
       reject(`Compilation error: ${data.toString()}`);
     });
 
     compileProcess.on("close", (code) => {
+      clearTimeout(compileTimer);
       if (code !== 0) {
         return reject("Compilation failed");
       }
@@ -91,6 +111,12 @@ async function executeCompiledCode(language, code, inputs = []) {
       let output = "";
       let errorOutput = "";
 
+      // Set a timeout for execution
+      const runTimer = setTimeout(() => {
+        runProcess.kill();
+        reject(new Error("Execution timed out"));
+      }, timeout);
+
       runProcess.stdout.on("data", (data) => {
         output += data.toString();
       });
@@ -100,6 +126,7 @@ async function executeCompiledCode(language, code, inputs = []) {
       });
 
       runProcess.on("close", (code) => {
+        clearTimeout(runTimer);
         if (code !== 0) {
           reject(`Execution error: ${errorOutput}`);
         } else {
@@ -117,9 +144,9 @@ async function executeCompiledCode(language, code, inputs = []) {
 
       // Send all inputs at once, if provided
       if (inputs.length > 0) {
-        runProcess.stdin.write(inputs.join("\n") + "\n"); // Send all inputs in one go
+        runProcess.stdin.write(inputs.join("\n") + "\n");
       }
-      runProcess.stdin.end(); // Close stdin after sending inputs
+      runProcess.stdin.end();
     });
   });
 }
