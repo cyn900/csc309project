@@ -1,3 +1,5 @@
+#!/bin/bash
+
 npm install @prisma/client
 npm install bcrypt
 npm install express
