@@ -20,30 +20,29 @@ export default async function handler(req, res) {
         return res.status(404).json({ message: 'User not found' });
     }
 
-    const { bID } = req.query;
-    const { voteType } = req.body; // Expect 'upvote' or 'downvote'
+    const { cID, voteType } = req.body; // Expect 'upvote' or 'downvote', cID is comment ID
 
     if (!['upvote', 'downvote'].includes(voteType)) {
         return res.status(400).json({ message: 'Invalid vote type specified. Must be either "upvote" or "downvote".' });
     }
 
-    const blog = await prisma.blog.findUnique({
-        where: { bID: parseInt(bID, 10) },
+    const comment = await prisma.comment.findUnique({
+        where: { cID: parseInt(cID, 10) },
         include: { upvoters: true, downvoters: true }
     });
 
-    if (!blog) {
-        return res.status(404).json({ message: 'Blog post not found' });
+    if (!comment) {
+        return res.status(404).json({ message: 'Comment not found' });
     }
 
-    const alreadyUpvoted = blog.upvoters.some(voter => voter.uID === user.uID);
-    const alreadyDownvoted = blog.downvoters.some(voter => voter.uID === user.uID);
+    const alreadyUpvoted = comment.upvoters.some(voter => voter.uID === user.uID);
+    const alreadyDownvoted = comment.downvoters.some(voter => voter.uID === user.uID);
 
     try {
         if (voteType === 'upvote') {
             if (!alreadyUpvoted) {
-                await prisma.blog.update({
-                    where: { bID: parseInt(bID, 10) },
+                await prisma.comment.update({
+                    where: { cID: parseInt(cID, 10) },
                     data: {
                         upvoters: { connect: { uID: user.uID } },
                         upvote: { increment: 1 }
@@ -51,8 +50,8 @@ export default async function handler(req, res) {
                 });
             }
             if (alreadyDownvoted) {
-                await prisma.blog.update({
-                    where: { bID: parseInt(bID, 10) },
+                await prisma.comment.update({
+                    where: { cID: parseInt(cID, 10) },
                     data: {
                         downvoters: { disconnect: { uID: user.uID } },
                         downvote: { decrement: 1 }
@@ -61,8 +60,8 @@ export default async function handler(req, res) {
             }
         } else if (voteType === 'downvote') {
             if (!alreadyDownvoted) {
-                await prisma.blog.update({
-                    where: { bID: parseInt(bID, 10) },
+                await prisma.comment.update({
+                    where: { cID: parseInt(cID, 10) },
                     data: {
                         downvoters: { connect: { uID: user.uID } },
                         downvote: { increment: 1 }
@@ -70,8 +69,8 @@ export default async function handler(req, res) {
                 });
             }
             if (alreadyUpvoted) {
-                await prisma.blog.update({
-                    where: { bID: parseInt(bID, 10) },
+                await prisma.comment.update({
+                    where: { cID: parseInt(cID, 10) },
                     data: {
                         upvoters: { disconnect: { uID: user.uID } },
                         upvote: { decrement: 1 }
@@ -80,13 +79,13 @@ export default async function handler(req, res) {
             }
         }
 
-        // Re-fetch the updated blog to return the latest vote counts
-        const updatedBlog = await prisma.blog.findUnique({
-            where: { bID: parseInt(bID, 10) },
+        // Re-fetch the updated comment to return the latest vote counts
+        const updatedComment = await prisma.comment.findUnique({
+            where: { cID: parseInt(cID, 10) },
             include: { upvoters: true, downvoters: true }
         });
 
-        res.status(200).json({ message: `Successfully updated ${voteType}`, blog: updatedBlog });
+        res.status(200).json({ message: `Successfully updated ${voteType}`, comment: updatedComment });
     } catch (error) {
         console.error("Error updating vote:", error);
         res.status(500).json({ message: "Unable to update vote, database error." });
