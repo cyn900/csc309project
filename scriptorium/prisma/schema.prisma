@@ -52,8 +52,6 @@ model Blog {
   description String?
   tags        Tag[]       @relation("BlogTags")
   templates   Template[]  @relation("BlogTemplates")
-  upvote      Int
-  downvote    Int
   upvoters    User[]      @relation("Upvotes")
   downvoters  User[]      @relation("Downvotes")
   commentNum  Int         // number of total comments (including subComments)
@@ -76,8 +74,6 @@ model Comment {
   pID           Int?        // Parent comment ID, null if top-level comment
   parentComment Comment?    @relation("subComments", fields: [pID], references: [cID], onDelete: Cascade)
   commentReports CommentReport[]
-  upvote      Int
-  downvote    Int
   upvoters    User[]      @relation("UpvotesComment")
   downvoters  User[]      @relation("DownvotesComment")
 }

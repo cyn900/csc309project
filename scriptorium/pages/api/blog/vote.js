@@ -44,8 +44,7 @@ export default async function handler(req, res) {
                 await prisma.blog.update({
                     where: { bID: parseInt(bID, 10) },
                     data: {
-                        upvoters: { connect: { uID: user.uID } },
-                        upvote: { increment: 1 }
+                        upvoters: { connect: { uID: user.uID } }
                     }
                 });
             }
@@ -53,8 +52,7 @@ export default async function handler(req, res) {
                 await prisma.blog.update({
                     where: { bID: parseInt(bID, 10) },
                     data: {
-                        downvoters: { disconnect: { uID: user.uID } },
-                        downvote: { decrement: 1 }
+                        downvoters: { disconnect: { uID: user.uID } }
                     }
                 });
             }
@@ -63,8 +61,7 @@ export default async function handler(req, res) {
                 await prisma.blog.update({
                     where: { bID: parseInt(bID, 10) },
                     data: {
-                        downvoters: { connect: { uID: user.uID } },
-                        downvote: { increment: 1 }
+                        downvoters: { connect: { uID: user.uID } }
                     }
                 });
             }
@@ -72,8 +69,7 @@ export default async function handler(req, res) {
                 await prisma.blog.update({
                     where: { bID: parseInt(bID, 10) },
                     data: {
-                        upvoters: { disconnect: { uID: user.uID } },
-                        upvote: { decrement: 1 }
+                        upvoters: { disconnect: { uID: user.uID } }
                     }
                 });
             }
