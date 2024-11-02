@@ -12,7 +12,6 @@ export default async function handler(req, res) {
         return res.status(401).json({ message: 'Invalid or missing authorization token' });
     }
 
-    // Retrieve user ID using the email from the token
     const user = await prisma.user.findUnique({
         where: { email: userClaims.useremail }
     });
@@ -22,13 +21,32 @@ export default async function handler(req, res) {
     }
 
     const { title, description, tags=[], templates=[] } = req.body;
+    console.log("tags", tags);
+    console.log("templates", templates);
 
     if (typeof title !== 'string' || title.trim() === '' ||
         typeof description !== 'string' || description.trim() === '') {
         return res.status(400).json({ message: "Title and description are required and must be strings." });
     }
 
-    // Ensure all template names exist in the database
+     // Validate tags and templates are arrays of strings
+     if (!Array.isArray(tags) || tags.some(tag => typeof tag !== 'string')) {
+        return res.status(400).json({ message: "Tags must be an array of strings." });
+    }
+
+    if (!Array.isArray(templates) || templates.some(template => typeof template !== 'string')) {
+        return res.status(400).json({ message: "Templates must be an array of strings and exist in the database." });
+    }
+
+    // Check if the blog title already exists using `findFirst`
+    const existingBlog = await prisma.blog.findFirst({
+        where: { title }
+    });
+
+    if (existingBlog) {
+        return res.status(409).json({ message: "A blog with this title already exists." });
+    }
+
     const existingTemplates = await prisma.template.findMany({
         where: {
             title: {
@@ -41,7 +59,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: "One or more templates do not exist." });
     }
 
-    // Process tags: create new or connect existing
     const tagConnectOrCreate = tags.map(tag => ({
         where: { value: tag },
         create: { value: tag },
@@ -56,7 +73,7 @@ export default async function handler(req, res) {
                 downvote: 0,
                 commentNum: 0,
                 hidden: false,
-                uID: user.uID,  // Now using the fetched user ID
+                uID: user.uID,
                 tags: {
                     connectOrCreate: tagConnectOrCreate
                 },

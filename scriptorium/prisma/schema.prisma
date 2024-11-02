@@ -53,7 +53,7 @@ model Template {
 
 model Blog {
   bID         Int         @id @default(autoincrement())
-  title       String
+  title       String      @unique
   description String?
   tags        Tag[]       @relation("BlogTags")
   templates   Template[]  @relation("BlogTemplates")
