@@ -43,20 +43,20 @@ export function verifyToken(token) {
 
 export function isLoggedIn(handler) {
   return async (req, res) => {
-    const token = req.headers.authorization?.split(" ")[1]; // Typically: 'Bearer <token>'
+    const token = req.headers.authorization?.split(" ")[1];
 
     if (!token) {
       return res
         .status(401)
-        .json({ message: "Access denied, no token provided" });
+        .json({ message: "Not logged in: No token provided" });
     }
 
     try {
-      const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET); // Use ACCESS_TOKEN_SECRET here
+      const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET);
       req.user = decoded; // Attach the decoded token to `req.user`
       return handler(req, res); // Continue to the next handler if authenticated
     } catch (error) {
-      return res.status(401).json({ message: "Invalid token" });
+      return res.status(401).json({ message: "Not logged in: Invalid token" });
     }
   };
 }
