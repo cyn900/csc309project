@@ -20,8 +20,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ message: 'User not found' });
     }
 
-    const { bID } = req.query;
-    const { voteType } = req.body; // Expect 'upvote' or 'downvote'
+    const { bID, voteType } = req.body; // Expect 'upvote' or 'downvote'
 
     if (!['upvote', 'downvote'].includes(voteType)) {
         return res.status(400).json({ message: 'Invalid vote type specified. Must be either "upvote" or "downvote".' });
