@@ -6,7 +6,7 @@ export default async function handler(req, res) {
         return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 
-    let { title, content, tags, templates, method, page = 1 } = req.body;
+    let { title, content, tags, templates, method, page = 1 } = req.query;
 
     // Validate data type for title and content
     if ((title && typeof title !== 'string') ||
