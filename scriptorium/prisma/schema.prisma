@@ -21,6 +21,8 @@ model User {
   comments       Comment[]
   commentReports CommentReport[]
   blogReports    BlogReport[]
+   upvoted    Blog[] @relation("Upvotes")
+  downvoted  Blog[] @relation("Downvotes")
 }
 
 model Tag {
@@ -32,7 +34,7 @@ model Tag {
 
 model Template {
   tID         Int         @id @default(autoincrement())
-  title       String
+  title       String      @unique
   explanation String?
   tags        Tag[]       @relation("TemplateTags")
   code        String?
@@ -45,13 +47,15 @@ model Template {
 
 model Blog {
   bID         Int         @id @default(autoincrement())
-  title       String
+  title       String      @unique
   description String?
   tags        Tag[]       @relation("BlogTags")
   templates   Template[]  @relation("BlogTemplates")
   upvote      Int
   downvote    Int
-  commentNum  Int         // number of total of comments (including subComments)
+  upvoters    User[]      @relation("Upvotes")
+  downvoters  User[]      @relation("Downvotes")
+  commentNum  Int         // number of total comments (including subComments)
   hidden      Boolean
   comments    Comment[]   // only the first level comments
   uID         Int
