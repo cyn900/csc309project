@@ -1,11 +1,15 @@
 import prisma from "@/utils/db";
-import { comparePassword, generateAccessToken, generateRefreshToken } from "@/utils/auth";
+import {
+  comparePassword,
+  generateAccessToken,
+  generateRefreshToken,
+} from "@/utils/auth";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  
+
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -26,11 +30,17 @@ export default async function handler(req, res) {
     });
   }
 
-  const accessToken = generateAccessToken({ userId: user.id, useremail: user.email });
-  const refreshToken = generateRefreshToken({ userId: user.id, useremail: user.email });
+  const accessToken = generateAccessToken({
+    userId: user.id,
+    useremail: user.email,
+  });
+  const refreshToken = generateRefreshToken({
+    userId: user.id,
+    useremail: user.email,
+  });
 
   return res.status(200).json({
     accessToken,
-    refreshToken
+    refreshToken,
   });
 }
