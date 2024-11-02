@@ -12,7 +12,6 @@ export default async function handler(req, res) {
         return res.status(401).json({ message: 'Invalid or missing authorization token' });
     }
 
-    // Retrieve user ID using the email from the token
     const user = await prisma.user.findUnique({
         where: { email: userClaims.useremail }
     });
@@ -21,10 +20,9 @@ export default async function handler(req, res) {
         return res.status(404).json({ message: 'User not found' });
     }
 
-    const { bID } = req.query;  // Retrieve blog ID from URL parameters
+    const { bID } = req.query;
     const { title, description, tags, templates, hidden } = req.body;
 
-    // Check if the blog belongs to the user
     const blog = await prisma.blog.findUnique({
         where: { bID: parseInt(bID, 10) }
     });
@@ -37,6 +35,15 @@ export default async function handler(req, res) {
         return res.status(403).json({ message: 'You do not have permission to edit this blog post' });
     }
 
+    // Process tags and templates
+    const tagConnectOrCreate = tags.map(tag => ({
+        where: { value: tag },
+        create: { value: tag }
+    }));
+    const existingTemplates = await prisma.template.findMany({
+        where: { tID: { in: templates } }
+    });
+
     try {
         const updatedBlog = await prisma.blog.update({
             where: { bID: parseInt(bID, 10) },
@@ -46,16 +53,19 @@ export default async function handler(req, res) {
                 hidden,
                 tags: {
                     set: [],
-                    connect: tags ? tags.map(tag => ({ id: tag })) : []
+                    connectOrCreate: tagConnectOrCreate
                 },
                 templates: {
-                    set: [],
-                    connect: templates ? templates.map(template => ({ id: template })) : []
+                    set: existingTemplates.map(template => ({ tID: template.tID }))
                 }
+            },
+            include: {
+                tags: true,
+                templates: true
             }
         });
 
-        res.status(200).json(updatedBlog);
+        res.status(200).json({ message: "Blog updated successfully", blog: updatedBlog });
     } catch (error) {
         console.error("Error updating blog post:", error);
         res.status(500).json({ message: "Unable to update blog post, database error." });
