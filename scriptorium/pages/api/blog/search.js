@@ -44,6 +44,14 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: "Templates must be an array" });
     }
 
+    // Check if all elements in tags and templates are strings
+    if (tags && !tags.every(tag => typeof tag === 'string')) {
+        return res.status(400).json({ message: "All tags must be strings." });
+    }
+    if (templates && !templates.every(template => typeof template === 'string')) {
+        return res.status(400).json({ message: "All templates must be strings." });
+    }
+
     // Build conditions based on tags and templates
     if (tags && tags.length) {
         conditions.push({
@@ -68,6 +76,7 @@ export default async function handler(req, res) {
         });
     }
 
+    console.log('Conditions:', conditions);
     try {
         const blogs = await prisma.blog.findMany({
             where: { AND: conditions },
