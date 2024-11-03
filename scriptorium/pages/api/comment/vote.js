@@ -45,7 +45,6 @@ export default async function handler(req, res) {
                     where: { cID: parseInt(cID, 10) },
                     data: {
                         upvoters: { connect: { uID: user.uID } },
-                        upvote: { increment: 1 }
                     }
                 });
             }
@@ -54,7 +53,6 @@ export default async function handler(req, res) {
                     where: { cID: parseInt(cID, 10) },
                     data: {
                         downvoters: { disconnect: { uID: user.uID } },
-                        downvote: { decrement: 1 }
                     }
                 });
             }
@@ -64,7 +62,6 @@ export default async function handler(req, res) {
                     where: { cID: parseInt(cID, 10) },
                     data: {
                         downvoters: { connect: { uID: user.uID } },
-                        downvote: { increment: 1 }
                     }
                 });
             }
@@ -72,8 +69,7 @@ export default async function handler(req, res) {
                 await prisma.comment.update({
                     where: { cID: parseInt(cID, 10) },
                     data: {
-                        upvoters: { disconnect: { uID: user.uID } },
-                        upvote: { decrement: 1 }
+                        upvoters: { disconnect: { uID: user.uID } }
                     }
                 });
             }
@@ -82,7 +78,14 @@ export default async function handler(req, res) {
         // Re-fetch the updated comment to return the latest vote counts
         const updatedComment = await prisma.comment.findUnique({
             where: { cID: parseInt(cID, 10) },
-            include: { upvoters: true, downvoters: true }
+            include: { 
+                _count: {
+                    select: {
+                        upvoters: true,
+                        downvoters: true
+                    }
+                }
+            }
         });
 
         res.status(200).json({ message: `Successfully updated ${voteType}`, comment: updatedComment });

@@ -75,13 +75,24 @@ export default async function handler(req, res) {
             }
         }
 
-        // Re-fetch the updated blog to return the latest vote counts
         const updatedBlog = await prisma.blog.findUnique({
             where: { bID: parseInt(bID, 10) },
-            include: { upvoters: true, downvoters: true }
+            include: {
+                _count: {
+                    select: {
+                        upvoters: true,
+                        downvoters: true
+                    }
+                }
+            }
         });
+        
+        if (!updatedBlog) {
+            return res.status(404).json({ message: "Blog post not found." });
+        }
 
-        res.status(200).json({ message: `Successfully updated ${voteType}`, blog: updatedBlog });
+        res.status(200).json({message: `Successfully updated ${voteType}`, blog: updatedBlog});
+        
     } catch (error) {
         console.error("Error updating vote:", error);
         res.status(500).json({ message: "Unable to update vote, database error." });
