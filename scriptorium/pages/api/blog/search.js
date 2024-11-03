@@ -81,8 +81,8 @@ export default async function handler(req, res) {
         // Sorting based on the 'method'
         switch (method) {
             case 'controversial':
-                blogs.sort((a, b) => (b.upvoters.length + b.downvoters.length + b.comments.length) -
-                                     (a.upvoters.length + a.downvoters.length + a.comments.length));
+                blogs.sort((a, b) => (b.upvoters.length + b.downvoters.length + b.commentNum) -
+                                     (a.upvoters.length + a.downvoters.length + a.commentNum));
                 break;
             default: // Default to 'popular'
                 blogs.sort((a, b) => b.upvoters.length - a.upvoters.length);
