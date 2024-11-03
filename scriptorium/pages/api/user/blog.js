@@ -49,7 +49,7 @@ export default async function handler(req, res) {
             skip: skip,
             take: pageSize,
             orderBy: {
-                bID: 'asc' // Assuming there is a 'createdAt' field to sort by
+                bID: 'asc' // Order by blog ID in ascending order, so oldest blogs are shown first
             }
         });
 
