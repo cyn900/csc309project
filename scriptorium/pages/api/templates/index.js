@@ -1,31 +1,55 @@
 import prisma from "@/utils/db";
 import { isLoggedIn } from "../../../utils/auth";
+import jwt from "jsonwebtoken";
 
 const handleGet = async (req, res) => {
-  const { page = 1, limit = 10, search = "" } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    title = "",
+    tags = [],
+    explanation = "",
+  } = req.query;
+
   const offset = (parseInt(page) - 1) * parseInt(limit);
 
-  const searchConditions = search
-    ? {
-        OR: [
-          { title: { contains: search, mode: "insensitive" } },
-          {
-            tags: { some: { name: { contains: search, mode: "insensitive" } } },
+  // Ensure `tags` is an array
+  const tagArray = Array.isArray(tags) ? tags : [tags];
+
+  // Build search conditions
+  const conditions = [];
+
+  if (title) {
+    conditions.push({ title: { contains: title } });
+  }
+
+  if (tagArray.length) {
+    conditions.push({
+      tags: {
+        some: {
+          value: {
+            in: tagArray,
           },
-          { explanation: { contains: search, mode: "insensitive" } },
-        ],
-      }
-    : {};
+        },
+      },
+    });
+  }
+
+  if (explanation) {
+    conditions.push({
+      explanation: { contains: explanation },
+    });
+  }
+
+  const searchConditions = conditions.length ? { AND: conditions } : {};
 
   try {
-    // Fetch paginated templates with search filters if provided
     const templates = await prisma.template.findMany({
       skip: offset,
       take: parseInt(limit),
       where: searchConditions,
     });
 
-    // Count total templates based on search
     const totalTemplates = await prisma.template.count({
       where: searchConditions,
     });
@@ -43,16 +67,23 @@ const handleGet = async (req, res) => {
   }
 };
 
-const jwt = require("jsonwebtoken"); // Make sure to install this package
-
 const handlePost = isLoggedIn(async (req, res) => {
-  const { title, explanation, tags, code, fork, uID } = req.body;
-  const token = req.headers.authorization?.split(" ")[1]; // Assuming Bearer token
+  const { title, explanation, tags, code, fork } = req.body;
+  const token = req.headers.authorization?.split(" ")[1];
 
-  if (!title || !uID) {
+  // Check if a template with the same title already exists
+  const existingTemplate = await prisma.template.findUnique({
+    where: { title },
+  });
+
+  if (existingTemplate) {
     return res
       .status(400)
-      .json({ error: "Title and user ID (uID) are required" });
+      .json({ error: "Template with this title already exists" });
+  }
+
+  if (!title) {
+    return res.status(400).json({ error: "Title is required" });
   }
 
   if (!token) {
@@ -60,14 +91,22 @@ const handlePost = isLoggedIn(async (req, res) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET); // Replace with your secret
-    const currentUID = decoded.uID; // Adjust this based on your token structure
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const email = decoded.useremail;
 
-    // Check if the uID from request matches the uID from token
-    if (currentUID !== uID) {
-      return res
-        .status(403)
-        .json({ error: "Unauthorized: uID does not match token" });
+    if (!email) {
+      return res.status(400).json({ error: "Invalid user" });
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    console.log(user);
+
+    if (!user) {
+      return res.status(400).json({ error: "User does not exist" });
     }
 
     const newTemplate = await prisma.template.create({
@@ -76,7 +115,7 @@ const handlePost = isLoggedIn(async (req, res) => {
         explanation,
         code,
         fork: fork || false,
-        uID,
+        uID: user.uID,
         ...(tags && {
           tags: {
             connectOrCreate: tags.map((tag) => ({
@@ -100,23 +139,32 @@ const handlePost = isLoggedIn(async (req, res) => {
 });
 
 const handleDelete = isLoggedIn(async (req, res) => {
-  const { tID, uID } = req.body;
+  const { tID } = req.body;
+  const token = req.headers.authorization?.split(" ")[1];
 
-  if (!tID || !uID) {
-    return res
-      .status(400)
-      .json({ error: "Template ID and user ID are required" });
+  if (!tID) {
+    return res.status(400).json({ error: "Template ID is required" });
+  }
+
+  if (!token) {
+    return res.status(401).json({ error: "No authorization token provided" });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET); // Replace with your secret
-    const currentUID = decoded.uID; // Adjust this based on your token structure
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const email = decoded.useremail;
 
-    // Check if the uID from request matches the uID from token
-    if (currentUID !== uID) {
-      return res
-        .status(403)
-        .json({ error: "Unauthorized: uID does not match token" });
+    if (!email) {
+      return res.status(400).json({ error: "Invalid user" });
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: "User does not exist" });
     }
 
     const template = await prisma.template.findUnique({
@@ -125,12 +173,6 @@ const handleDelete = isLoggedIn(async (req, res) => {
 
     if (!template) {
       return res.status(404).json({ error: "Template not found" });
-    }
-
-    if (template.uID !== uID) {
-      return res
-        .status(403)
-        .json({ error: "Unauthorized to delete this template" });
     }
 
     await prisma.template.delete({
@@ -147,24 +189,34 @@ const handleDelete = isLoggedIn(async (req, res) => {
 });
 
 const handleUpdate = isLoggedIn(async (req, res) => {
-  const { title, explanation, tags, code, fork, uID, tID } = req.body;
+  const { title, explanation, tags, code, fork, tID } = req.body;
+  const token = req.headers.authorization?.split(" ")[1];
 
   if (!tID) {
     return res.status(400).json({ error: "Template ID (tID) is required" });
   }
 
-  try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET); // Replace with your secret
-    const currentUID = decoded.uID; // Adjust this based on your token structure
+  if (!token) {
+    return res.status(401).json({ error: "No authorization token provided" });
+  }
 
-    // Check if the uID from request matches the uID from token
-    if (currentUID !== uID) {
-      return res
-        .status(403)
-        .json({ error: "Unauthorized: uID does not match token" });
+  try {
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const email = decoded.useremail;
+
+    if (!email) {
+      return res.status(400).json({ error: "Invalid user" });
     }
 
-    // Find the template by tID
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { email: email },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: "User does not exist" });
+    }
+
     const existingTemplate = await prisma.template.findUnique({
       where: { tID: parseInt(tID) },
     });
@@ -173,7 +225,6 @@ const handleUpdate = isLoggedIn(async (req, res) => {
       return res.status(404).json({ error: "Template not found" });
     }
 
-    // Update the template
     const updatedTemplate = await prisma.template.update({
       where: { tID: parseInt(tID) },
       data: {
@@ -181,7 +232,7 @@ const handleUpdate = isLoggedIn(async (req, res) => {
         explanation,
         code,
         fork,
-        uID,
+        uID: user.uID,
         ...(tags && {
           tags: {
             connectOrCreate: tags.map((tag) => ({
