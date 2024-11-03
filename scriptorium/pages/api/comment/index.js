@@ -26,6 +26,10 @@ export default async function handler(req, res) {
                 downvoters: { select: { uID: true } }, // Only return user IDs
                 parentComment: true, // Include basic details if needed
                 subComments: {
+                    where: {
+                        pID: id,     // Ensure the pID is accurate
+                        hidden: false  // Filter to only show visible comments
+                    },
                     skip,
                     take: parseInt(pageSize),
                     orderBy: { cID: 'asc' }
