@@ -6,7 +6,7 @@ export default async function handler(req, res) {
         return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 
-    let { title, content, tags, templates, method = "popular", page = 1, pageSize = 5 } = req.body;
+    let { title, content, tags, templates, method , page = 1, pageSize = 5 } = req.query;
 
     // Validate data type for title and content
     if ((title && typeof title !== 'string') ||
@@ -32,13 +32,24 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: "Invalid JSON format for tags or templates" });
     }
 
-    // Ensure tags and templates are arrays
-    if (tags && !Array.isArray(tags)) {
-        return res.status(400).json({ message: "Tags must be an array" });
+    /// Check and normalize tags to ensure it's always an array
+    if (tags) {
+        if (typeof tags === 'string') {
+            tags = [tags]; // Convert single string to an array with one element
+        } else if (!Array.isArray(tags)) {
+            return res.status(400).json({ message: "Tags must be an array or a single string." });
+        }
     }
-    if (templates && !Array.isArray(templates)) {
-        return res.status(400).json({ message: "Templates must be an array" });
+
+    // Check and normalize templates to ensure it's always an array
+    if (templates) {
+        if (typeof templates === 'string') {
+            templates = [templates]; // Convert single string to an array with one element
+        } else if (!Array.isArray(templates)) {
+            return res.status(400).json({ message: "Templates must be an array or a single string." });
+        }
     }
+
 
     // Build conditions based on tags and templates
     if (tags && tags.length) {
@@ -78,14 +89,19 @@ export default async function handler(req, res) {
             take: pageSize
         });
 
+        console.log(method);
         // Sorting based on the 'method'
         switch (method) {
             case 'controversial':
+                console.log('here: controversial');
                 blogs.sort((a, b) => (b.upvoters.length + b.downvoters.length + b.commentNum) -
                                      (a.upvoters.length + a.downvoters.length + a.commentNum));
                 break;
-            default: // Default to 'popular'
+            case 'popular':
                 blogs.sort((a, b) => b.upvoters.length - a.upvoters.length);
+                break;
+            default: // Default to based on created time
+                blogs.sort((a, b) => b.bID - a.bID); // newer first
                 break;
         }
         
