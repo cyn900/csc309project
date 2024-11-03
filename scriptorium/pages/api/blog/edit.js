@@ -34,6 +34,10 @@ export default async function handler(req, res) {
         return res.status(403).json({ message: 'You do not have permission to edit this blog post' });
     }
 
+    if(blog.hidden) {
+        return res.status(403).json({ message: 'You cannot edit this blog post' });
+    }
+
     // Process tags and templates
     const tagConnectOrCreate = tags.map(tag => ({
         where: { value: tag },
