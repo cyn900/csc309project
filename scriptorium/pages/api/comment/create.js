@@ -27,14 +27,23 @@ export default async function handler(req, res) {
     if (!bID || typeof content !== 'string' || content.trim() === '') {
         return res.status(400).json({ message: "Blog ID and content are required and content must be a non-empty string." });
     }
-    // Check if pID exists if provided
-    if (pID) {
+    
+     // Check if pID exists if provided
+     if (pID) {
         const parentComment = await prisma.comment.findUnique({
-            where: { cID: parseInt(pID, 10) }
+            where: { cID: parseInt(pID, 10) },
+            include: {
+                blog: true  // Include the blog for cross verification
+            }
         });
 
         if (!parentComment) {
             return res.status(404).json({ message: "Parent comment not found." });
+        }
+        
+        // Verify that the parent comment belongs to the same blog
+        if (parentComment.blog.bID !== bID) {
+            return res.status(400).json({ message: "Parent comment does not belong to the provided blog." });
         }
     }
 
@@ -44,8 +53,6 @@ export default async function handler(req, res) {
                 data: {
                     content: content,
                     hidden: false,
-                    upvote: 0,
-                    downvote: 0,
                     blog: {
                         connect: {
                             bID: parseInt(bID, 10)
