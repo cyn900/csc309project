@@ -6,7 +6,7 @@ export default async function handler(req, res) {
         return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 
-    let { title, content, tags, templates, method = "popular", page = 1 } = req.body;
+    let { title, content, tags, templates, method = "popular", page = 1, pageSize = 5 } = req.body;
 
     // Validate data type for title and content
     if ((title && typeof title !== 'string') ||
@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
     // Convert page to integer
     page = parseInt(page, 10);
-    const pageSize = 5; // Set the number of items per page
+
     const skip = (page - 1) * pageSize; // Calculate the number of items to skip
 
     const conditions = [{ hidden: false }]; // Default condition to filter hidden blogs
