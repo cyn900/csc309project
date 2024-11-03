@@ -69,9 +69,30 @@ async function handlePatchRequest(req, res, userClaims) {
 async function processPatchRequest(req, res, userClaims) {
     const { firstName, lastName, phoneNum } = req.body;
     const updateData = {};
-    if (firstName) updateData.firstName = firstName;
-    if (lastName) updateData.lastName = lastName;
-    if (phoneNum) updateData.phoneNum = phoneNum;
+    
+    // Validate firstName and lastName as strings
+    if (firstName !== undefined) {
+        if (typeof firstName !== 'string' || firstName.trim() === '') {
+            return res.status(400).json({ message: "firstName must be a non-empty string." });
+        }
+        updateData.firstName = firstName.trim();
+    }
+
+    if (lastName !== undefined) {
+        if (typeof lastName !== 'string' || lastName.trim() === '') {
+            return res.status(400).json({ message: "lastName must be a non-empty string." });
+        }
+        updateData.lastName = lastName.trim();
+    }
+
+    // Validate phoneNum as a number
+    if (phoneNum !== undefined) {
+        if (typeof phoneNum !== 'number' || isNaN(phoneNum)) {
+            return res.status(400).json({ message: "phoneNum must be a valid number." });
+        }
+        updateData.phoneNum = phoneNum;
+    }
+
     if (req.file) updateData.avatar = `/${req.file.path}`;
 
     try {
