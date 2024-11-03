@@ -46,11 +46,11 @@ export default async function handler(req, res) {
                 tags: true,      // Optional: Include tags for each blog
                 templates: true  // Optional: Include templates for each blog
             },
-            skip: skip,
-            take: pageSize,
             orderBy: {
                 bID: 'asc' // Order by blog ID in ascending order, so oldest blogs are shown first
-            }
+            },
+            skip: skip,
+            take: pageSize,
         });
 
         // return total count for client-side pagination handling
