@@ -24,31 +24,29 @@ export default async function handler(req, res) {
     if (title) conditions.push({ title: { contains: title } });
     if (content) conditions.push({ description: { contains: content } });
 
-    // Try to parse tags and templates if they are provided as strings
-    try {
-        if (tags && typeof tags === 'string') tags = JSON.parse(tags);
-        if (templates && typeof templates === 'string') templates = JSON.parse(templates);
-    } catch (err) {
-        return res.status(400).json({ message: "Invalid JSON format for tags or templates" });
-    }
-
-    /// Check and normalize tags to ensure it's always an array
+    // Normalize tags and templates to always be arrays
     if (tags) {
-        if (typeof tags === 'string') {
-            tags = [tags]; // Convert single string to an array with one element
-        } else if (!Array.isArray(tags)) {
+        tags = typeof tags === 'string' ? [tags] : tags;
+        if (!Array.isArray(tags)) {
             return res.status(400).json({ message: "Tags must be an array or a single string." });
         }
     }
 
-    // Check and normalize templates to ensure it's always an array
     if (templates) {
-        if (typeof templates === 'string') {
-            templates = [templates]; // Convert single string to an array with one element
-        } else if (!Array.isArray(templates)) {
+        templates = typeof templates === 'string' ? [templates] : templates;
+        if (!Array.isArray(templates)) {
             return res.status(400).json({ message: "Templates must be an array or a single string." });
         }
     }
+
+    // Remove JSON parsing logic if it is no longer needed, or adjust accordingly
+    try {
+        if (typeof tags === 'string') tags = JSON.parse(tags);
+        if (typeof templates === 'string') templates = JSON.parse(templates);
+    } catch (err) {
+        return res.status(400).json({ message: "Invalid JSON format for tags or templates" });
+    }
+
 
 
     // Build conditions based on tags and templates
