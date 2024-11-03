@@ -69,7 +69,6 @@ export default async function handler(req, res) {
             data: {
                 title,
                 description,
-                commentNum: 0,
                 hidden: false,
                 uID: user.uID,
                 tags: {

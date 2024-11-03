@@ -73,14 +73,6 @@ export default async function handler(req, res) {
                 }
             });
 
-            // Increment the commentNum on the associated blog
-            await prisma.blog.update({
-                where: { bID: parseInt(bID, 10) },
-                data: {
-                    commentNum: { increment: 1 }
-                }
-            });
-
             return newComment;
         });
 

@@ -85,7 +85,8 @@ export default async function handler(req, res) {
                 _count: {
                     select: {
                         upvoters: true,
-                        downvoters: true
+                        downvoters: true,
+                        comments:true,
                     }
                 }
             }
@@ -94,8 +95,8 @@ export default async function handler(req, res) {
         // Sorting the retrieved blogs before pagination
         switch (method) {
             case 'controversial':
-                allBlogs.sort((a, b) => (b._count.upvoters + b._count.downvoters + b.commentNum) -
-                                        (a._count.upvoters + a._count.downvoters + a.commentNum));
+                allBlogs.sort((a, b) => (b._count.upvoters + b._count.downvoters + b._count.comments) -
+                                        (a._count.upvoters + a._count.downvoters + a._count.comments));
                 break;
             case 'popular':
                 allBlogs.sort((a, b) => b._count.upvoters - a._count.upvoters);
