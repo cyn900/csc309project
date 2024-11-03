@@ -8,16 +8,18 @@ export default async function handler(req, res) {
 
     let { title, content, tags, templates, method , page = 1, pageSize = 5 } = req.query;
 
+    // Convert and validate pagination parameters
+    page = parseInt(page, 10);
+    pageSize = parseInt(pageSize, 10);
+    if (isNaN(page) || page < 1 || isNaN(pageSize) || pageSize < 1) {
+        return res.status(400).json({ message: "Page and pageSize must be positive integers." });
+    }
+
     // Validate data type for title and content
     if ((title && typeof title !== 'string') ||
         (content && typeof content !== 'string')){
         return res.status(400).json({ message: "Incorrect data types provided for title and content." });
     }
-
-    // Convert page to integer
-    page = parseInt(page, 10);
-
-    const skip = (page - 1) * pageSize; // Calculate the number of items to skip
 
     const conditions = [{ hidden: false }]; // Default condition to filter hidden blogs
 
@@ -74,36 +76,40 @@ export default async function handler(req, res) {
     }
 
     try {
-        const blogs = await prisma.blog.findMany({
+        const allBlogs = await prisma.blog.findMany({
             where: { AND: conditions },
             include: {
                 tags: true,
                 templates: true,
                 user: true,
-                upvoters: true,
-                downvoters: true
-            },
-            skip,
-            take: pageSize
+                _count: {
+                    select: {
+                        upvoters: true,
+                        downvoters: true
+                    }
+                }
+            }
         });
 
-        console.log(method);
-        // Sorting based on the 'method'
+        // Sorting the retrieved blogs before pagination
         switch (method) {
             case 'controversial':
-                console.log('here: controversial');
-                blogs.sort((a, b) => (b.upvoters.length + b.downvoters.length + b.commentNum) -
-                                     (a.upvoters.length + a.downvoters.length + a.commentNum));
+                allBlogs.sort((a, b) => (b._count.upvoters + b._count.downvoters + b.commentNum) -
+                                        (a._count.upvoters + a._count.downvoters + a.commentNum));
                 break;
             case 'popular':
-                blogs.sort((a, b) => b.upvoters.length - a.upvoters.length);
+                allBlogs.sort((a, b) => b._count.upvoters - a._count.upvoters);
                 break;
-            default: // Default to based on created time
-                blogs.sort((a, b) => b.bID - a.bID); // newer first
+            default:
+                allBlogs.sort((a, b) => b.bID - a.bID); // newer first
                 break;
         }
-        
-        res.status(200).json(blogs);
+
+        // Manually applying pagination
+        const startIndex = (page - 1) * pageSize;
+        const paginatedBlogs = allBlogs.slice(startIndex, startIndex + pageSize);
+
+        res.status(200).json(paginatedBlogs);
     } catch (error) {
         console.error('Search query failed:', error);
         res.status(500).json({ message: "Internal server error while executing search" });
