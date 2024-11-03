@@ -6,7 +6,7 @@ export default async function handler(req, res) {
         return res.status(405).end('Method Not Allowed');
     }
 
-    let { bID, page = 1, method , pageSize = 5 } = req.query; // Default pagination parameters
+    let { bID, method, page = 1, pageSize = 5 } = req.query; // Default pagination parameters
 
     // Validate blog ID
     if (!bID) {
@@ -43,6 +43,10 @@ export default async function handler(req, res) {
             }
         });
 
+        if (!comments) {
+            return res.status(404).json({ message: "Comment not found." });
+        }
+
         // Sort comments based on the specified method
         comments.sort((a, b) => {
             switch (method) {
@@ -55,6 +59,7 @@ export default async function handler(req, res) {
                     return b.cID - a.cID; // Sort by comment ID for default case
             }
         });
+
 
         // Manually apply pagination
         const startIndex = (page - 1) * pageSize;
