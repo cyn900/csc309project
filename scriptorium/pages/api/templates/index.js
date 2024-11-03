@@ -43,8 +43,11 @@ const handleGet = async (req, res) => {
   }
 };
 
+const jwt = require("jsonwebtoken"); // Make sure to install this package
+
 const handlePost = isLoggedIn(async (req, res) => {
   const { title, explanation, tags, code, fork, uID } = req.body;
+  const token = req.headers.authorization?.split(" ")[1]; // Assuming Bearer token
 
   if (!title || !uID) {
     return res
@@ -52,7 +55,21 @@ const handlePost = isLoggedIn(async (req, res) => {
       .json({ error: "Title and user ID (uID) are required" });
   }
 
+  if (!token) {
+    return res.status(401).json({ error: "No authorization token provided" });
+  }
+
   try {
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET); // Replace with your secret
+    const currentUID = decoded.uID; // Adjust this based on your token structure
+
+    // Check if the uID from request matches the uID from token
+    if (currentUID !== uID) {
+      return res
+        .status(403)
+        .json({ error: "Unauthorized: uID does not match token" });
+    }
+
     const newTemplate = await prisma.template.create({
       data: {
         title,
@@ -92,6 +109,16 @@ const handleDelete = isLoggedIn(async (req, res) => {
   }
 
   try {
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET); // Replace with your secret
+    const currentUID = decoded.uID; // Adjust this based on your token structure
+
+    // Check if the uID from request matches the uID from token
+    if (currentUID !== uID) {
+      return res
+        .status(403)
+        .json({ error: "Unauthorized: uID does not match token" });
+    }
+
     const template = await prisma.template.findUnique({
       where: { tID },
     });
@@ -127,6 +154,16 @@ const handleUpdate = isLoggedIn(async (req, res) => {
   }
 
   try {
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET); // Replace with your secret
+    const currentUID = decoded.uID; // Adjust this based on your token structure
+
+    // Check if the uID from request matches the uID from token
+    if (currentUID !== uID) {
+      return res
+        .status(403)
+        .json({ error: "Unauthorized: uID does not match token" });
+    }
+
     // Find the template by tID
     const existingTemplate = await prisma.template.findUnique({
       where: { tID: parseInt(tID) },
