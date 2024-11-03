@@ -25,6 +25,28 @@ export default async function handler(req, res) {
     }
 
     try {
+
+        // Fetch the blog including its comments and the blog details
+        const blog = await prisma.blog.findUnique({
+            where: { bID: id, hidden: false },
+            include: {
+                tags: true,
+                templates: true,
+                user: true,
+                _count: {
+                    select: {
+                        upvoters: true,
+                        downvoters: true,
+                        comments: true
+                    }
+                },
+            }
+        })
+
+        if (!blog) {
+            return res.status(404).json({ message: "Blog post not found." });
+        }
+
         const comments = await prisma.comment.findMany({
             where: {
                 bID: id,
@@ -65,7 +87,7 @@ export default async function handler(req, res) {
         const startIndex = (page - 1) * pageSize;
         const paginatedComments = comments.slice(startIndex, startIndex + pageSize);
 
-        res.status(200).json(paginatedComments);
+        res.status(200).json({blog, paginatedComments});
     } catch (error) {
         console.error("Error retrieving blog post:", error);
         res.status(500).json({ message: "Internal server error while retrieving the blog post" });
