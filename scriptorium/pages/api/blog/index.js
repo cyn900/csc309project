@@ -6,7 +6,7 @@ export default async function handler(req, res) {
         return res.status(405).end('Method Not Allowed');
     }
 
-    let { bID, page = 1, pageSize = 5 } = req.query; // Default pagination parameters
+    let { bID, page = 1, method , pageSize = 5 } = req.query; // Default pagination parameters
 
     // Validate blog ID
     if (!bID) {
@@ -35,21 +35,43 @@ export default async function handler(req, res) {
                     where: {
                         bID: id,       // Ensure comments by blog ID
                         pID: null,     // Ensure only first-level comments are fetched
-                        hidden: false  // Filter to only show visible comments
+                        hidden: false,  // Filter to only show visible comments
                     },
                     skip: (page - 1) * pageSize,
                     take: pageSize,
                     include: {
-                        user: true    // Include the user details for each comment
+                        user: true,    // Include the user details for each comment
+                        _count: {
+                            select: {
+                                upvoters: true,
+                                downvoters: true,
+                                subComments: true
+                            }
+                        }
                     }
-                },
-                upvoters: true,        // Include users who upvoted the blog
-                downvoters: true       // Include users who downvoted the blog
+                }
             }
         });
 
         if (!blog) {
             return res.status(404).json({ message: "Blog post not found." });
+        }
+
+        // Apply manual sorting based on method if comments exist
+        if (blog.comments && blog.comments.length > 0) {
+            switch (method) {
+                case 'controversial':
+                    blog.comments.sort((a, b) => 
+                        (b._count.upvoters+ b._count.downvoters + b._count.subComments) -
+                        (a._count.upvoters+ b._count.downvoters + b._count.subComments));
+                    break;
+                case 'popular':
+                    blog.comments.sort((a, b) => b._count.upvoters - a._count.upvoters);
+                    break;
+                default:
+                    blog.comments.sort((a, b) => b.bID - a.bID); // newer first
+                    break;
+            }
         }
 
         res.status(200).json(blog);
