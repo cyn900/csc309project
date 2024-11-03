@@ -53,7 +53,7 @@ export default async function handler(req, res) {
             }
         });
 
-        // Optionally, return total count for client-side pagination handling
+        // return total count for client-side pagination handling
         const totalCount = await prisma.blog.count({
             where: { uID: user.uID }
         });

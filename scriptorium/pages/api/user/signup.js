@@ -9,7 +9,6 @@ export const config = {
 };
 
 export default function handler(req, res) {
-    // Middleware to manually handle JSON parsing
     if (req.headers['content-type']?.includes('application/json')) {
         let data = '';
         req.on('data', chunk => {
