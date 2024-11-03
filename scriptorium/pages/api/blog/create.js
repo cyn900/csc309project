@@ -29,13 +29,13 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: "Title and description are required and must be strings." });
     }
 
-     // Validate tags and templates are arrays of strings
-     if (!Array.isArray(tags) || tags.some(tag => typeof tag !== 'string')) {
-        return res.status(400).json({ message: "Tags must be an array of strings." });
+    // Validate tags and templates are arrays of strings
+    if (!Array.isArray(tags) || tags.some(tag => typeof tag !== 'string') || tags.length > 10) {
+        return res.status(400).json({ message: "Tags must be an array of strings and cannot exceed 10." });
     }
 
-    if (!Array.isArray(templates) || templates.some(template => typeof template !== 'string')) {
-        return res.status(400).json({ message: "Templates must be an array of strings and exist in the database." });
+    if (!Array.isArray(templates) || templates.some(template => typeof template !== 'string') || templates.length > 10) {
+        return res.status(400).json({ message: "Templates must be an array of strings and cannot exceed 10." });
     }
 
     // Check if the blog title already exists using `findFirst`
@@ -69,8 +69,6 @@ export default async function handler(req, res) {
             data: {
                 title,
                 description,
-                upvote: 0,
-                downvote: 0,
                 commentNum: 0,
                 hidden: false,
                 uID: user.uID,
