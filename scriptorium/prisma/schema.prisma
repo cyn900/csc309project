@@ -50,6 +50,7 @@ model Blog {
   bID         Int         @id @default(autoincrement())
   title       String      @unique
   description String?
+  hidden      Boolean     @default(false)
   tags        Tag[]       @relation("BlogTags")
   templates   Template[]  @relation("BlogTemplates")
   upvoters    User[]      @relation("Upvotes")
@@ -62,7 +63,7 @@ model Blog {
 
 model Comment {
   cID           Int         @id @default(autoincrement())
-  hidden        Boolean
+  hidden        Boolean     @default(false)
   content       String
   subComments   Comment[]   @relation("subComments")
   uID           Int
