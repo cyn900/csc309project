@@ -25,56 +25,42 @@ export default async function handler(req, res) {
     }
 
     try {
-        const blog = await prisma.blog.findUnique({
-            where: { bID: id },
+        const comments = await prisma.comment.findMany({
+            where: {
+                bID: id,
+                pID: null, // Only fetch first-level comments
+                hidden: false
+            },
             include: {
-                tags: true,            // Include related tags
-                templates: true,       // Include related templates
-                user: true,            // Include the blog author
-                comments: {            // Paginate first-level comments
-                    where: {
-                        bID: id,       // Ensure comments by blog ID
-                        pID: null,     // Ensure only first-level comments are fetched
-                        hidden: false,  // Filter to only show visible comments
-                    },
-                    skip: (page - 1) * pageSize,
-                    take: pageSize,
-                    include: {
-                        user: true,    // Include the user details for each comment
-                        _count: {
-                            select: {
-                                upvoters: true,
-                                downvoters: true,
-                                subComments: true
-                            }
-                        }
+                user: true, // Include user details
+                _count: {
+                    select: {
+                        upvoters: true,
+                        downvoters: true,
+                        subComments: true
                     }
                 }
             }
         });
 
-        if (!blog) {
-            return res.status(404).json({ message: "Blog post not found." });
-        }
-
-        // Apply manual sorting based on method if comments exist
-        if (blog.comments && blog.comments.length > 0) {
+        // Sort comments based on the specified method
+        comments.sort((a, b) => {
             switch (method) {
                 case 'controversial':
-                    blog.comments.sort((a, b) => 
-                        (b._count.upvoters+ b._count.downvoters + b._count.subComments) -
-                        (a._count.upvoters+ b._count.downvoters + b._count.subComments));
-                    break;
+                    return (b._count.upvoters + b._count.downvoters + b._count.subComments) -
+                            (a._count.upvoters + a._count.downvoters + a._count.subComments);
                 case 'popular':
-                    blog.comments.sort((a, b) => b._count.upvoters - a._count.upvoters);
-                    break;
+                    return b._count.upvoters - a._count.upvoters;
                 default:
-                    blog.comments.sort((a, b) => b.bID - a.bID); // newer first
-                    break;
+                    return b.cID - a.cID; // Sort by comment ID for default case
             }
-        }
+        });
 
-        res.status(200).json(blog);
+        // Manually apply pagination
+        const startIndex = (page - 1) * pageSize;
+        const paginatedComments = comments.slice(startIndex, startIndex + pageSize);
+
+        res.status(200).json(paginatedComments);
     } catch (error) {
         console.error("Error retrieving blog post:", error);
         res.status(500).json({ message: "Internal server error while retrieving the blog post" });
