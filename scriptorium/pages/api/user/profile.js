@@ -67,10 +67,11 @@ async function handlePatchRequest(req, res, userClaims) {
 }
 
 async function processPatchRequest(req, res, userClaims) {
-    const { firstName, lastName } = req.body;
+    const { firstName, lastName, phoneNum } = req.body;
     const updateData = {};
     if (firstName) updateData.firstName = firstName;
     if (lastName) updateData.lastName = lastName;
+    if (phoneNum) updateData.phoneNum = phoneNum;
     if (req.file) updateData.avatar = `/${req.file.path}`;
 
     try {
