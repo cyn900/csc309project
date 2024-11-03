@@ -1,0 +1,8 @@
+- JWT => store refresh token in the backend => only store in the frontend
+
+As a visitor, I want to provide input to my code via the standard input (stdin) before execution so that I can test programs that require user input. => What does this mean?
+=> have user type in stdin and the program should execute.
+
+As a user, I want to comment, or reply to existing comments on a blog post so that I can engage with the author and other readers by sharing feedback, asking questions, or starting discussions. => Does a recursive comment structure work? (Comments in comments)
+
+/api/report => {body : comment/blog id}
