@@ -15,31 +15,42 @@ const executeInterpretedCode = (command, inputs = [], timeout = 10000) => {
       reject({ status: 400, message: "Execution timed out" });
     }, timeout);
 
-    // Capture stdout data
     process.stdout.on("data", (data) => {
       output += data.toString();
     });
 
-    // Capture stderr data
     process.stderr.on("data", (data) => {
       errorOutput += data.toString();
     });
 
-    // Handle process exit
     process.on("close", (code) => {
-      clearTimeout(timer); // Clear the timeout on close
+      clearTimeout(timer);
       if (code !== 0) {
-        reject(`Error: ${errorOutput || `Process exited with code ${code}`}`);
-      } else {
-        resolve(output);
+        // Handle known error messages with more detailed output
+        if (errorOutput.includes("ZeroDivisionError")) {
+          return reject({
+            message: "Runtime error: Division by zero detected in the code.",
+          });
+        } else if (errorOutput.includes("SyntaxError")) {
+          return reject({
+            message: `Syntax error in the provided code: ${errorOutput.trim()}`,
+          });
+        } else if (errorOutput.includes("ReferenceError")) {
+          return reject({ message: `Reference error: ${errorOutput.trim()}` });
+        }
+        return reject({
+          message: `Execution error: ${
+            errorOutput.trim() || `Process exited with code ${code}`
+          }`,
+        });
       }
+      resolve(output.trim());
     });
 
-    // Send all inputs at once
     if (inputs.length > 0) {
-      process.stdin.write(inputs.join("\n") + "\n"); // Send all inputs as a single block
+      process.stdin.write(inputs.join("\n") + "\n");
     }
-    process.stdin.end(); // End stdin as no further input is expected
+    process.stdin.end();
   });
 };
 
@@ -87,7 +98,6 @@ async function executeCompiledCode(
 
     const compileProcess = spawn(compileCommand, { shell: true });
 
-    // Set a timeout for compilation
     const compileTimer = setTimeout(() => {
       compileProcess.kill();
       reject(new Error("Compilation timed out"));
@@ -95,22 +105,20 @@ async function executeCompiledCode(
 
     compileProcess.stderr.on("data", (data) => {
       clearTimeout(compileTimer);
-      reject(`Compilation error: ${data.toString()}`);
+      reject(`Compilation error: ${data.toString().trim()}`);
     });
 
     compileProcess.on("close", (code) => {
       clearTimeout(compileTimer);
       if (code !== 0) {
-        return reject("Compilation failed");
+        return reject("Compilation failed.");
       }
 
-      // Execute the compiled code
       const runProcess = spawn(runCommand, { shell: true });
 
       let output = "";
       let errorOutput = "";
 
-      // Set a timeout for execution
       const runTimer = setTimeout(() => {
         runProcess.kill();
         reject(new Error("Execution timed out"));
@@ -127,10 +135,21 @@ async function executeCompiledCode(
       runProcess.on("close", (code) => {
         clearTimeout(runTimer);
         if (code !== 0) {
-          reject(`Execution error: ${errorOutput}`);
-        } else {
-          resolve(output);
+          if (errorOutput.includes("ArithmeticException")) {
+            return reject({
+              message:
+                "Runtime error: Division by zero or invalid arithmetic operation.",
+            });
+          } else if (errorOutput.includes("Exception")) {
+            return reject({ message: `Runtime error: ${errorOutput.trim()}` });
+          }
+          return reject({
+            message: `Execution error: ${
+              errorOutput.trim() || `Process exited with code ${code}`
+            }`,
+          });
         }
+        resolve(output.trim());
 
         // Clean up temporary files
         fs.unlinkSync(filePath);
@@ -141,7 +160,6 @@ async function executeCompiledCode(
         }
       });
 
-      // Send all inputs at once, if provided
       if (inputs.length > 0) {
         runProcess.stdin.write(inputs.join("\n") + "\n");
       }

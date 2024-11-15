@@ -11,6 +11,12 @@ const handleGet = async (req, res) => {
     explanation = "",
   } = req.query;
 
+  if (isNaN(parseInt(page)) || isNaN(parseInt(limit))) {
+    return res.status(400).json({
+      error: "Page and limit query parameters must be positive integers",
+    });
+  }
+
   const offset = (parseInt(page) - 1) * parseInt(limit);
 
   // Ensure `tags` is an array
@@ -82,6 +88,22 @@ const handlePost = isLoggedIn(async (req, res) => {
       .json({ error: "Template with this title already exists" });
   }
 
+  if (typeof title !== 'string') {
+    return res.status(400).json({ error: "Invalid type for title; expected 'string'." });
+  }
+  if (typeof explanation !== 'string') {
+    return res.status(400).json({ error: "Invalid type for explanation; expected 'string'." });
+  }
+  if (!Array.isArray(tags) || !tags.every(tag => typeof tag === 'string') || tags.length > 10) {
+    return res.status(400).json({ error: "Invalid type for tags; expected an array of strings and no more than 10 tags." });
+  }
+  if (typeof code !== 'string') {
+    return res.status(400).json({ error: "Invalid type for code; expected 'string'." });
+  }
+  if (typeof fork !== 'boolean') {
+    return res.status(400).json({ error: "Invalid type for fork; expected 'boolean'." });
+  }
+  
   if (!title) {
     return res.status(400).json({ error: "Title is required" });
   }
@@ -139,8 +161,10 @@ const handlePost = isLoggedIn(async (req, res) => {
 });
 
 const handleDelete = isLoggedIn(async (req, res) => {
-  const { tID } = req.body;
   const token = req.headers.authorization?.split(" ")[1];
+
+  // Extracting tID from the query string and converting it to an integer
+  const tID = parseInt(req.query.tID, 10);
 
   if (!tID) {
     return res.status(400).json({ error: "Template ID is required" });
@@ -167,12 +191,20 @@ const handleDelete = isLoggedIn(async (req, res) => {
       return res.status(400).json({ error: "User does not exist" });
     }
 
+    // Attempt to find the template with the provided tID
     const template = await prisma.template.findUnique({
       where: { tID },
     });
 
+    // If no template found, return an error
     if (!template) {
-      return res.status(404).json({ error: "Template not found" });
+        return res.status(404).json({ error: "Template not found" });
+    }
+
+    if (template.uID !== user.uID) {
+      return res.status(403).json({
+        error: "You do not have permission to delete this template",
+      });
     }
 
     await prisma.template.delete({
@@ -190,11 +222,28 @@ const handleDelete = isLoggedIn(async (req, res) => {
 
 const handleUpdate = isLoggedIn(async (req, res) => {
   const { title, explanation, tags, code, fork, tID } = req.body;
-  const token = req.headers.authorization?.split(" ")[1];
 
-  if (!tID) {
-    return res.status(400).json({ error: "Template ID (tID) is required" });
+  // Type validations
+  if (typeof tID !== 'number') {
+    return res.status(400).json({ error: "Invalid type for Template ID (tID); expected 'number'." });
   }
+  if (typeof title !== 'string') {
+    return res.status(400).json({ error: "Invalid type for title; expected 'string'." });
+  }
+  if (typeof explanation !== 'string') {
+    return res.status(400).json({ error: "Invalid type for explanation; expected 'string'." });
+  }
+  if (!Array.isArray(tags) || !tags.every(tag => typeof tag === 'string') || tags.length > 10) {
+    return res.status(400).json({ error: "Invalid type for tags; expected an array of strings and no more than 10 tags." });
+  }
+  if (typeof code !== 'string') {
+    return res.status(400).json({ error: "Invalid type for code; expected 'string'." });
+  }
+  if (typeof fork !== 'boolean') {
+    return res.status(400).json({ error: "Invalid type for fork; expected 'boolean'." });
+  }
+
+  const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
     return res.status(401).json({ error: "No authorization token provided" });
@@ -210,7 +259,7 @@ const handleUpdate = isLoggedIn(async (req, res) => {
 
     // Check if user exists
     const user = await prisma.user.findUnique({
-      where: { email: email },
+      where: { email },
     });
 
     if (!user) {
@@ -218,29 +267,52 @@ const handleUpdate = isLoggedIn(async (req, res) => {
     }
 
     const existingTemplate = await prisma.template.findUnique({
-      where: { tID: parseInt(tID) },
+      where: { tID },
     });
 
+    // Check if the template exists before checking ownership
     if (!existingTemplate) {
       return res.status(404).json({ error: "Template not found" });
     }
 
+    // Check if the logged-in user has the permission to update the template
+    if (existingTemplate.uID !== user.uID) {
+      return res.status(403).json({
+        error: "You do not have permission to update this template",
+      });
+    }
+
+    // Check if another template with the same title exists
+    const duplicateTitle = await prisma.template.findFirst({
+      where: {
+        title: title,
+        tID: { not: tID } // Exclude the current template from the search
+      }
+    });
+
+    if (duplicateTitle) {
+      return res.status(409).json({ error: "Another template with the same title already exists" });
+    }
+
+    // Process tags and templates
+    const tagConnectOrCreate = tags.map(tag => ({
+      where: { value: tag },
+      create: { value: tag }
+    }));
+
+    // Update the template, using existing values where new ones are not provided
     const updatedTemplate = await prisma.template.update({
-      where: { tID: parseInt(tID) },
+      where: { tID },
       data: {
-        title,
-        explanation,
-        code,
-        fork,
-        uID: user.uID,
-        ...(tags && {
-          tags: {
-            connectOrCreate: tags.map((tag) => ({
-              where: { value: tag },
-              create: { value: tag },
-            })),
-          },
-        }),
+        title: title ?? existingTemplate.title,
+        explanation: explanation ?? existingTemplate.explanation,
+        code: code ?? existingTemplate.code,
+        fork: fork ?? existingTemplate.fork,
+        uID: user.uID,  // Assuming uID should always be set to the current user's ID
+        tags: {
+          set: [], // Clear existing tags first
+          connectOrCreate: tagConnectOrCreate
+        },
       },
     });
 
@@ -250,9 +322,7 @@ const handleUpdate = isLoggedIn(async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating template:", error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while updating the template" });
+    res.status(500).json({ error: "An error occurred while updating the template" });
   }
 });
 
@@ -263,10 +333,10 @@ export default function handler(req, res) {
     handlePost(req, res);
   } else if (req.method === "DELETE") {
     handleDelete(req, res);
-  } else if (req.method === "PUT") {
+  } else if (req.method === "PATCH") {
     handleUpdate(req, res);
   } else {
-    res.setHeader("Allow", ["GET", "POST", "DELETE", "PUT"]);
+    res.setHeader("Allow", ["GET", "POST", "DELETE", "PATCH"]);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }

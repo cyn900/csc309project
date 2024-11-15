@@ -1,0 +1,1906 @@
+{
+	"info": {
+		"_postman_id": "1fd68680-ae01-4765-a829-8bc5ff2002b8",
+		"name": "Scriptorium",
+		"description": "Welcome to the Scriptorium Backend API documentation.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30168843",
+		"_collection_link": "https://scriptorium-5362.postman.co/workspace/eab53d83-185a-4a53-8ff3-aa45cc5b31b9/collection/35323985-1fd68680-ae01-4765-a829-8bc5ff2002b8?action=share&source=collection_link&creator=30168843"
+	},
+	"item": [
+		{
+			"name": "user",
+			"item": [
+				{
+					"name": "sign up",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"firstName\":\"test\",\n    \"lastName\":\"admin\",\n    \"email\":\"admin1234@gmail.com\",\n    \"password\":\"123\",\n    \"phoneNum\":1234,\n    \"role\":\"admin\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/user/signup",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"user",
+								"signup"
+							]
+						},
+						"description": "It supports content type json for standard registration data and multipart/form-data for registrations including a profile picture upload using Multer.\n\n**Payload**:\n\n• firstName (string): First name of the user.\n\n• lastName (string): Last name of the user.\n\n• email (string): Email address of the user, must be unique.\n\n• password (string): Password for the user account.\n\n• phoneNum (integer, optional): Phone number of the user.\n\n• role (string, default “user”): Role of the user in the system.\n\n• avatar (file, optional): Profile picture to upload.\n\n**Responses**:\n\n• **201 Created**:\n\n`{ \"message\": \"User registered successfully\", \"user\": { \"uID\": 5, \"firstName\": \"test\", \"lastName\": \"admin\", \"email\": \"`[<code>admin1234@gmail.com</code>](https://mailto:admin1234@gmail.com)`\", \"password\": \"$2b$10$cmzZbv1xNWQQkz3X6vVe4.WySpGnvkasIqMSxsK/7jG7gX5eFybq6\", \"avatar\": \"public/avatar/default.jpg\", \"phoneNum\": 1234, \"role\": \"admin\" } }`\n\n• **400 Bad Request**: Missing required fields or incorrect data format.\n\n• **409 Conflict**: Email already registered.\n\n• **500 Internal Server Error**: Issues with file upload, database access, or password hashing."
+					},
+					"response": []
+				},
+				{
+					"name": "login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"accessToken\", jsonData.accessToken);",
+									"pm.environment.set(\"refreshToken\", jsonData.refreshToken);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\":\"admin123@gmail.com\",\n    \"password\":\"123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/user/login",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"user",
+								"login"
+							]
+						},
+						"description": "This endpoint authenticates a user by their email and password. It validates the user credentials and returns access and refresh tokens upon successful authentication.\n\n**Payload** :\n\n• email (string): The user’s email address.\n\n• password (string): The user’s password.\n\n**Responses**:\n\n• **200 OK**:\n\n`{ \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyZW1haWwiOiJhZG1pbjEyM0BnbWFpbC5jb20iLCJpYXQiOjE3MzA2NzExNjMsImV4cCI6MTczMDY3Mjk2M30.XAWdaethqNIYf-4M-X2awM1JgQ5BDn46Bfhpe6AOboA\", \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyZW1haWwiOiJhZG1pbjEyM0BnbWFpbC5jb20iLCJpYXQiOjE3MzA2NzExNjMsImV4cCI6MTczMTI3NTk2M30.STBTw4acY8eqXmR6IWrmbvF02PmYThbMMQreAc65MnI\" }`\n\n• **400 Bad Request**: Missing either email or password.\n\n• **401 Unauthorized**: Invalid credentials.\n\n• **405 Method Not Allowed**: If any method other than POST is used."
+					},
+					"response": []
+				},
+				{
+					"name": "refresh token",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var refreshToken = pm.environment.get('refreshToken');",
+									"",
+									"if (refreshToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + refreshToken",
+									"    });",
+									"} else {",
+									"    console.log('No refresh token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"accessToken\", jsonData.accessToken);",
+									"pm.environment.set(\"refreshToken\", jsonData.refreshToken);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/user/refresh",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"user",
+								"refresh"
+							]
+						},
+						"description": "This endpoint validates the user’s access token provided in the authorization header and genreates new tokens.\n\n**Authorization**:\n\n• Authorization (string): Bearer access token obtained during user login.\n\n**Responses:**\n\n• **200 OK**: Successful validation.\n\n`{ \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyZW1haWwiOiJhZG1pbjEyM0BnbWFpbC5jb20iLCJpYXQiOjE3MzA2NzE0ODksImV4cCI6MTczMDY3MzI4OX0.3dZBQpCs98bnpkuBNCJHO_ZElUCJHX3D2nO5BlnXalA\", \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyZW1haWwiOiJhZG1pbjEyM0BnbWFpbC5jb20iLCJpYXQiOjE3MzA2NzE0ODksImV4cCI6MTczMTI3NjI4OX0.OnmX7ZcBtNOhrC-SX5TnN84tazXcN0P2ntJkr88HTWs\" }`\n\n• **401 Unauthorized**: Returned if the token is invalid or expired.\n\n• **405 Method Not Allowed**: Returned if the request method is not POST."
+					},
+					"response": []
+				},
+				{
+					"name": "view profile",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/user/profile",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"user",
+								"profile"
+							]
+						},
+						"description": "Retrieves the authenticated user’s profile information. It verifies the user’s identity using an authorization token and returns the user’s profile details.\n\n**Authorization**:\n\nRequires a valid authorization token provided in the request header.\n\n**Responses**:\n\n• **200 OK**: Successfully retrieves the user profile.\n\n`{ \"message\": \"User profile retrieved successfully\", \"user\": { \"uID\": 4, \"firstName\": \"teacct\", \"lastName\": \"user221\", \"email\": \"`[<code>admin123@gmail.com</code>](https://mailto:admin123@gmail.com)`\", \"password\": \"$2b$10$SGAns/dN5Jq5LSq2dBGk3.8/TIxK1RjxDGvhQmQVJ/oWTYJOMIzWO\", \"avatar\": \"public/avatar/default.jpg\", \"phoneNum\": 1234, \"role\": \"admin\" } }`\n\n• **401 Unauthorized**: Invalid or missing authorization token.\n\n• **404 Not Found**: User not found."
+					},
+					"response": []
+				},
+				{
+					"name": "update profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"firstName\":\"updated\",\n    \"lastName\":\"name\",\n    \"phoneNum\":123424\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/user/profile",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"user",
+								"profile"
+							]
+						},
+						"description": "Allows the authenticated user to update their profile information. It handles data in both son and multipart/form-data formats, allowing updates to fields like firstName, lastName, phoneNum, and the profile avatar.\n\n**Authorization**:\n\nRequires a valid authorization token provided in the request header.\n\n  \n**Payload**:\n\n• firstName: Optional string, must be non-empty if provided.\n\n• lastName: Optional string, must be non-empty if provided.\n\n• phoneNum: Optional number.\n\n• avatar: Optional file, handled via multipart/form-data.\n\n**Responses**:\n\n  \n\n• **200 OK**: Profile updated successfully.\n\n`{   \"message\": \"Profile updated successfully\",   \"user\": {   \"uID\": 4,   \"firstName\": \"updated\",   \"lastName\": \"name\",   \"email\": \"`[<code>admin123@gmail.com</code>](https://mailto:admin123@gmail.com)`\",   \"password\": \"$2b$10$SGAns/dN5Jq5LSq2dBGk3.8/TIxK1RjxDGvhQmQVJ/oWTYJOMIzWO\",   \"avatar\": \"public/avatar/default.jpg\",   \"phoneNum\": 123424,   \"role\": \"admin\"   }   }`\n\n• **400 Bad Request**: Validation errors for input data.\n\n• **401 Unauthorized**: Invalid or missing authorization token.\n\n• **404 Not Found**: User not found."
+					},
+					"response": []
+				},
+				{
+					"name": "view blogs by user",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/user/blog?page=1&pageSize=5",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"user",
+								"blog"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Retrieves a paginated list of blogs created by the authenticated user. This endpoint verifies the user’s identity using an authorization token and returns blogs associated with the user, including related tags and templates.\n\n**Authorization**:\n\nRequires a valid authorization token provided in the request header.\n\n**Query Parameters**:\n\n• page: Specifies the page number in the pagination sequence.\n\n• pageSize: Specifies the number of blog entries per page.\n\n**Responses**:\n\n• **200 OK**: Successfully retrieves the list of blogs along with pagination details.\n\n`{   \"blogs\": [   {   \"bID\": 12,   \"title\": \"testing1\",   \"description\": \"description 8\",   \"hidden\": false,   \"uID\": 4,   \"tags\": [   {   \"id\": 1,   \"value\": \"Python\"   },   {   \"id\": 2,   \"value\": \"Java\"   },   {   \"id\": 4,   \"value\": \"python\"   },   {   \"id\": 6,   \"value\": \"easy\"   }   ],   \"templates\": []   }   ],   \"totalCount\": 1,   \"page\": 1,   \"pageSize\": 5   }`\n\n• **400 Bad Request**: Missing or invalid pagination parameters.\n\n• **401 Unauthorized**: Invalid or missing authorization token.\n\n• **404 Not Found**: User not found."
+					},
+					"response": []
+				},
+				{
+					"name": "view templates by user",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/user/template?page=1&pageSize=2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"user",
+								"template"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "2"
+								}
+							]
+						},
+						"description": "Retrieves a paginated list of templates created by the authenticated user. This endpoint verifies the user’s identity using an authorization token and returns templates associated with the user, including related tags.\n\n**Authorization**:\n\nRequires a valid authorization token provided in the request header.\n\n**Query Parameters**:\n\n• page: Specifies the page number in the pagination sequence.\n\n• pageSize: Specifies the number of template entries per page.\n\n**Responses**:\n\n• **200 OK**: Successfully retrieves the list of templates along with pagination details.\n\n`{   \"templates\": [   {   \"tID\": 2,   \"title\": \"\",   \"explanation\": null,   \"code\": null,   \"fork\": false,   \"uID\": 4,   \"tags\": []   },   {   \"tID\": 3,   \"title\": \"cads\",   \"explanation\": \"fat\",   \"code\": \"dfsdf\",   \"fork\": false,   \"uID\": 4,   \"tags\": []   }   ],   \"totalCount\": 6,   \"page\": 1,   \"pageSize\": 2   }`\n\n• **400 Bad Request**: Missing or invalid pagination parameters.\n\n• **401 Unauthorized**: Invalid or missing authorization token.\n\n• **404 Not Found**: User not found."
+					},
+					"response": []
+				}
+			],
+			"description": "This folder contains API endpoints related to user management functions within the Scriptorium Backend. It includes operations such as user registration, login, profile editing, and the display of all blogs and templates created by the user."
+		},
+		{
+			"name": "code execution",
+			"item": [
+				{
+					"name": "Python No Inputs",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"print('Hello from Python')\",\n  \"input\": \"\",\n  \"language\": \"python\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/code/execute",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"code",
+								"execute"
+							]
+						},
+						"description": "**Expected output: 200 OK**\n\n`{ \"output\": \"Hello from Python\\n\"}`"
+					},
+					"response": []
+				},
+				{
+					"name": "Python w/ Inputs",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"input_values = [input() for _ in range(2)]; print(f'Hello, {input_values[0]} and {input_values[1]}')\",\n  \"input\": [\"PythonUser1\", \"PythonUser2\"],\n  \"language\": \"python\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/code/execute",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"code",
+								"execute"
+							]
+						},
+						"description": "**Expected output: 200 OK**\n\n`{ \"output\": \"Hello, PythonUser1 and PythonUser2\\n\" }`"
+					},
+					"response": []
+				},
+				{
+					"name": "JavaScript No Inputs",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"console.log('Hello from JavaScript')\",\n  \"input\": \"\",\n  \"language\": \"javascript\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/code/execute",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"code",
+								"execute"
+							]
+						},
+						"description": "**Expected output: 200 OK**\n\n`{ \"output\": \"Hello from JavaScript\\n\" }`"
+					},
+					"response": []
+				},
+				{
+					"name": "JavaScript w/ Inputs",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"const readline = require('readline'); const rl = readline.createInterface({ input: process.stdin, output: process.stdout }); let inputs = []; rl.on('line', (input) => { inputs.push(input); if (inputs.length === 2) { console.log(`Hello, ${inputs[0]} and ${inputs[1]}`); rl.close(); } });\",\n  \"input\": [\"JavaScriptUser1\", \"JavaScriptUser2\"],\n  \"language\": \"javascript\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/code/execute",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"code",
+								"execute"
+							]
+						},
+						"description": "**Expected output: 200 OK**\n\n`{ \"output\": \"\\n\" }`"
+					},
+					"response": []
+				},
+				{
+					"name": "Java No Inputs",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"public class Main { public static void main(String[] args) { System.out.println(\\\"Hello from Java\\\"); } }\",\n  \"input\": \"\",\n  \"language\": \"java\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/code/execute",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"code",
+								"execute"
+							]
+						},
+						"description": "**Expected output: 200 OK**\n\n`{ \"output\": \"Hello from Java\\n\" }`"
+					},
+					"response": []
+				},
+				{
+					"name": "Java w/ Inputs",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"import java.util.Scanner; public class Main { public static void main(String[] args) { Scanner scanner = new Scanner(System.in); String input1 = scanner.nextLine(); String input2 = scanner.nextLine(); System.out.println(\\\"Hello, \\\" + input1 + \\\" and \\\" + input2); scanner.close(); } }\",\n  \"input\": [\"JavaUser1\", \"JavaUser2\"],\n  \"language\": \"java\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/code/execute",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"code",
+								"execute"
+							]
+						},
+						"description": "**Expected output: 200 OK**\n\n> {  \n\"output\": \"Hello, JavaUser1 and JavaUser2\\\\n\"  \n}"
+					},
+					"response": []
+				},
+				{
+					"name": "C No Inputs",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"#include <stdio.h> \\n int main() { printf(\\\"Hello from C\\\\n\\\"); return 0; }\",\n  \"input\": \"\",\n  \"language\": \"c\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/code/execute",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"code",
+								"execute"
+							]
+						},
+						"description": "**Expected output: 200 OK**\n\n`{   \"output\": \"Hello from C\\n\"   }`"
+					},
+					"response": []
+				},
+				{
+					"name": "C w/ Inputs",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"#include <stdio.h>\\n int main() { char input1[50], input2[50]; scanf(\\\"%s\\\", input1); scanf(\\\"%s\\\", input2); printf(\\\"Hello, %s and %s\\\\n\\\", input1, input2); return 0; }\",\n  \"input\": [\"CUser1\", \"CUser2\"],\n  \"language\": \"c\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/code/execute",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"code",
+								"execute"
+							]
+						},
+						"description": "**Expected output: 200 OK**\n\n`{   \"output\": \"Hello, CUser1 and CUser2\\n\"   }`"
+					},
+					"response": []
+				},
+				{
+					"name": "C++ No Inputs",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"#include <iostream> \\n int main() { std::cout << \\\"Hello from C++\\\" << std::endl; return 0; }\",\n  \"input\": \"\",\n  \"language\": \"cpp\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/code/execute",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"code",
+								"execute"
+							]
+						},
+						"description": "**Expected output: 200 OK**\n\n`{   \"output\": \"Hello from C++\\n\"   }`"
+					},
+					"response": []
+				},
+				{
+					"name": "C++ w/ Inputs",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"#include <iostream>\\n int main() { std::string input1, input2; std::cin >> input1 >> input2; std::cout << \\\"Hello, \\\" << input1 << \\\" and \\\" << input2 << std::endl; return 0; }\",\n  \"input\": [\"CppUser1\", \"CppUser2\"],\n  \"language\": \"cpp\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/code/execute",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"code",
+								"execute"
+							]
+						},
+						"description": "**Expected output: 200 OK**\n\n`{   \"output\": \"Hello, CppUser1 and CppUser2\\n\"   }`"
+					},
+					"response": []
+				},
+				{
+					"name": "Timeout Error w/ Interpreted Language",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"while True: pass\",\n  \"input\": \"\",\n  \"language\": \"python\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/code/execute",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"code",
+								"execute"
+							]
+						},
+						"description": "**Expected output: 400 Bad Request**\n\n`{   \"error\": \"Failed to execute code: Execution timed out\"   }`"
+					},
+					"response": []
+				},
+				{
+					"name": "Timeout Error w/ Compiled Language",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"#include <stdio.h>\\nint main() { while (1) {} return 0; }\",\n  \"input\": \"\",\n  \"language\": \"c\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/code/execute",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"code",
+								"execute"
+							]
+						},
+						"description": "**Expected output: 400 Bad Request**\n\n`{   \"error\": \"Failed to execute code: Execution timed out\"   }`"
+					},
+					"response": []
+				},
+				{
+					"name": "Division By Zero error - Python",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"print(0/0)\",\n  \"input\": \"\",\n  \"language\": \"python\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/code/execute",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"code",
+								"execute"
+							]
+						},
+						"description": "**Expected output: 400 Bad Request**\n\n`{   \"error\": \"Failed to execute code: Runtime error: Division by zero detected in the code.\"   }`"
+					},
+					"response": []
+				}
+			],
+			"description": "Executes code submitted by the user for 10 seconds, supporting various programming languages.\n\n**Request Body**:\n\n• code: The source code to execute.\n\n• input: Input parameters for the code, if required.\n\n• language: Programming language of the code (e.g., “javascript”, “python”).\n\n**Responses**:\n\n• **200 OK**: Returns the output of the executed code.\n\n`{ \"output\": \"Hello from Python\\n\" }`\n\n• **400 Bad Request**: If the specified programming language is unsupported or got error when executing the code.\n\n`{ \"error\": \"Failed to execute code: Execution timed out\" }`\n\n• **405 Method Not Allowed**: If the HTTP method is not POST."
+		},
+		{
+			"name": "code templates",
+			"item": [
+				{
+					"name": "create template",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"New Title !!\",\n  \"explanation\": \"Updated explanation\",\n  \"tags\": [\"updatedTag\"],\n  \"code\": \"Updated code\",\n  \"fork\": true\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/templates",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"templates"
+							]
+						},
+						"description": "Allow logged in user to post code template.\n\n**Authorization:**\n\nRequires a valid authorization token provided in the request header.\n\n**Request Parameters:**\n\n• title: Title of the template (required).\n\n• explanation: A brief description or explanation of the template (optional).\n\n• tags: An array of tag values related to the template (optional).\n\n• code: The actual code snippet for the template (optional).\n\n• fork: Boolean indicating if the template is a fork of another template (defaults to false).\n\n**Responses:**\n\n• **201 Created**: Returns a success message and the newly created template.\n\n`{ \"message\": \"Template created\", \"template\": { \"tID\": 14, \"title\": \"New Title !!\", \"explanation\": \"Updated explanation\", \"code\": \"Updated code\", \"fork\": true, \"uID\": 4 } }`\n\n• **400 Bad Request**: Missing required fields or invalid input format.\n\n• **401 Unauthorized**: No authorization token provided or token validation failed.\n\n• **409 Conflict**: A template with the given title already exists."
+					},
+					"response": []
+				},
+				{
+					"name": "search template",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/templates?title =title&tags=python&tags=java&explanation=what&page=&limit=3",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"templates"
+							],
+							"query": [
+								{
+									"key": "title ",
+									"value": "title"
+								},
+								{
+									"key": "tags",
+									"value": "python"
+								},
+								{
+									"key": "tags",
+									"value": "java"
+								},
+								{
+									"key": "explanation",
+									"value": "what"
+								},
+								{
+									"key": "page",
+									"value": ""
+								},
+								{
+									"key": "limit",
+									"value": "3"
+								}
+							]
+						},
+						"description": "Search template based on given input. All given condition (case insensitive) must be matched to be shown in the search result.\n\n**Query Parameters:**  \n• page: Specifies the page number in the pagination sequence (default: 1).\n\n• pageSize: Specifies the number of template entries per page (default: 10).\n\n• title: Filters templates based on title inclusion (optional).\n\n• tags: Filters templates based on associated tags (optional, can be multiple strings).\n\n• explanation: Filters templates based on text included in the explanation (optional).\n\n**Responses:**\n\n• **200 OK**: Successfully retrieves the list of templates along with pagination details. (not the output for the Query Params show below)\n\n`{ \"templates\": [ { \"tID\": 1, \"title\": \"Updated Title 1\", \"explanation\": \"Updated explanation\", \"code\": \"Updated code\", \"fork\": false, \"uID\": 1 }, { \"tID\": 2, \"title\": \"\", \"explanation\": null, \"code\": null, \"fork\": false, \"uID\": 4 }, { \"tID\": 3, \"title\": \"cads\", \"explanation\": \"fat\", \"code\": \"dfsdf\", \"fork\": false, \"uID\": 4 } ], \"totalPages\": 5, \"currentPage\": 1 }`\n\n• **400 Bad Request**: Invalid query parameters.\n\n• **401 Unauthorized**: No authorization token provided or token is invalid.\n\n• **404 Not Found**: No templates found or user not found."
+					},
+					"response": []
+				},
+				{
+					"name": "delete template create by user",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/templates?tID=4",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"templates"
+							],
+							"query": [
+								{
+									"key": "tID",
+									"value": "4"
+								}
+							]
+						},
+						"description": "Delete a template created by the user.\n\n**Authorization**\n\nBearer token required for verifying user authentication.\n\n**Parameters**\n\n• tID: The ID of the template to be deleted.\n\n**Responses**\n\n• **200 OK**: Returns a success message indicating that the template was successfully deleted.\n\n`{ \"message\": \"Template deleted successfully\" }`\n\n• **400 Bad Request**:\n\n• Returns an error if the tID is not provided or cannot be parsed as an integer.\n\n• Returns an error if the user does not exist in the database.\n\n• Returns an error if the tags is more than 10.\n\n• **401 Unauthorized**: Returns an error if no authorization token is provided.\n\n• **403 Forbidden**: Returns an error if the user does not have permission to delete the specified template.\n\n• **404 Not Found**: Returns an error if the specified template is not found in the database."
+					},
+					"response": []
+				},
+				{
+					"name": "edit template created by user",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Update\",\n  \"explanation\": \"exp\",\n  \"tags\": [\"JS\",\"1\",\"2\",\"3\",\"4\", \"5\", \"6\", \"342\"],\n  \"code\": \"console.log('Hello World')\",\n  \"fork\": true,\n  \"tID\": 7\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/templates",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"templates"
+							]
+						},
+						"description": "Update a template created by the user. If a field is not provided, make it maintain as the orginal.\n\n**Authorization**\n\nBearer token required for verifying user authentication.\n\n**Request Body**\n\n• tID (Integer): The unique identifier for the template to be updated. Required.\n\n• title (String): The new title of the template.\n\n• explanation (String): Detailed explanation or description of the template.\n\n• tags (Array of Strings): Tags associated with the template for categorization or search.\n\n• code (String): The code snippet or content of the template.\n\n• fork (Boolean): Indicates whether the template is a fork of another template.\n\n**Responses**\n\n• **200 OK**: Returns a success message indicating that the template was successfully updated.\n\n`{ \"message\": \"Template updated successfully\" }`\n\n• **400 Bad Request**: Invalid query parameters.\n\n• **401 Unauthorized**: No authorization token provided or token is invalid.\n\n• **404 Not Found**: No templates found or user not found."
+					},
+					"response": []
+				}
+			],
+			"description": "This endpoint in the API manages template-related operations including creation, deletion, search, and updating of templates. It supports various methods and ensures that the user is authenticated before performing some actions."
+		},
+		{
+			"name": "blog",
+			"item": [
+				{
+					"name": "search blogs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/blog/search?method=controversial&title=bloa",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"blog",
+								"search"
+							],
+							"query": [
+								{
+									"key": "tags",
+									"value": "python",
+									"disabled": true
+								},
+								{
+									"key": "tags",
+									"value": "Java",
+									"disabled": true
+								},
+								{
+									"key": "method",
+									"value": "controversial"
+								},
+								{
+									"key": "title",
+									"value": "bloa"
+								}
+							]
+						},
+						"description": "Search for Blogs based on input. All search criteria must be satisfied for a blog to be shown in the output.\n\n**Query Parameters:**\n\n• **title** (optional): Filters posts containing the specified title substring.\n\n• **content** (optional): Filters posts containing the specified content substring.\n\n• **tags** (optional): Filters posts associated with the specified tags (array of strings or a single string).\n\n• **templates** (optional): Filters posts associated with specified templates (array of strings or a single string).\n\n• **method** (optional): Determines the sorting method of the posts (controversial, popular, or default by newest).\n\n• **page** (default: 1): Specifies the page number in the result set.\n\n• **pageSize** (default: 5): Specifies the number of posts per page.\n\n**Responses:**\n\n• **200 OK**: Returns a list of blog posts that match the criteria.\n\n`[ { \"bID\": 9, \"title\": \"bloafawww\", \"description\": \"description 8\", \"hidden\": false, \"uID\": 1, \"tags\": [ { \"id\": 1, \"value\": \"Python\" }, { \"id\": 2, \"value\": \"Java\" }, { \"id\": 4, \"value\": \"python\" } ], \"templates\": [], \"user\": { \"uID\": 1, \"firstName\": \"updated\", \"lastName\": \"name\", \"email\": \"`[<code>user1@gmail.com</code>](https://mailto:user1@gmail.com)`\", \"password\": \"$2b$10$dp731kUjvbVmzAyprEM2p.fI5F.NRDtBDQyiEPYOtjWoejw/IrH22\", \"avatar\": \"public/avatar/default.jpg\", \"phoneNum\": 123424, \"role\": \"user\" }, \"_count\": { \"upvoters\": 0, \"downvoters\": 0, \"comments\": 0 } } ]`\n\n• **400 Bad Request**:\n\n• Returns an error if page or pageSize are not positive integers.\n\n• Returns an error if there is an invalid JSON format for tags or templates.\n\n• Returns an error if tags or templates are not arrays or a single string.\n\n• Returns an error for incorrect data types or invalid values for title and content.\n\n• **401 Unauthorized**:\n\n• Returns an error if no authorization token is provided or the token validation fails.\n\n• **405 Method Not Allowed**:\n\n• Returns an error if the request method is not GET.\n\n**Sorting:**\n\n• **controversial**: Sorts posts by the sum of upvoters, downvoters, and comments.\n\n• **popular**: Sorts posts by the number of upvoters.\n\n• **default**: Sorts posts by the newest based on their ID."
+					},
+					"response": []
+				},
+				{
+					"name": "create blog",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\":\"testingsdvcsd\",\n    \"description\":\"description 8\",\n    \"tags\":[\"Python\", \"Java\", \"python\",\"easy\"],\n    \"templates\":[]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/blog/create",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"blog",
+								"create"
+							]
+						},
+						"description": "**Authorization:**\n\n• Requires a valid authorization token provided in the Authorization header.\n\n**Request Body:**\n\n• **title** (String): The title of the blog post. This is a required field and must be a non-empty string.\n\n• **description** (String): A detailed description or body of the blog post. This is a required field and must be a non-empty string.\n\n• **tags** (Array of Strings): A list of tags associated with the blog post. Optional field, defaults to an empty array, cannot contain more than 10 tags.\n\n• **templates** (Array of Strings): A list of template titles associated with the blog post. Optional field, defaults to an empty array, cannot contain more than 10 templates.\n\n**Responses:**\n\n• **201 Created**: Returns a success message and details of the newly created blog post.\n\n`{ \"message\": \"Blog created successfully\", \"blog\": { \"bID\": 13, \"title\": \"testingsdvcsd\", \"description\": \"description 8\", \"hidden\": false, \"uID\": 4, \"tags\": [ { \"id\": 1, \"value\": \"Python\" }, { \"id\": 2, \"value\": \"Java\" }, { \"id\": 4, \"value\": \"python\" }, { \"id\": 6, \"value\": \"easy\" } ], \"templates\": [] } }`\n\n• **400 Bad Request**:\n\n• Title and description are required and must be strings.\n\n• Tags and templates must be valid arrays of strings and cannot exceed 10 items each.\n\n• One or more specified templates do not exist.\n\n• **401 Unauthorized**: Invalid or missing authorization token.\n\n• **404 Not Found**: User associated with the token does not exist.\n\n• **405 Method Not Allowed**: Method used is not POST.\n\n• **409 Conflict**: A blog with the provided title already exists.\n\n• **500 Internal Server Error**: Unable to create blog post due to a database error."
+					},
+					"response": []
+				},
+				{
+					"name": "vote blog",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"bID\": 3,\"voteType\":\"downvote\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/blog/vote",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"blog",
+								"vote"
+							]
+						},
+						"description": "Logged in user can vote. If user already voded on the blog, overwrote it with the new request.\n\n**Authorization:**\n\n• Requires a valid authorization token provided in the Authorization header.\n\n**Request Body:**\n\n• **bID** (Integer): The unique identifier of the blog post to vote on. Required.\n\n• **voteType** (String): The type of vote to cast. Accepts either “upvote” or “downvote”. Required.\n\n**Responses:**\n\n• **200 OK**:Returns a success message and the updated vote count of the blog post.\n\n`{ \"message\": \"Successfully updated downvote\", \"blog\": { \"bID\": 3, \"title\": \"fdfvs\", \"description\": \"asfcedfvVARVRG\", \"hidden\": false, \"uID\": 1, \"_count\": { \"upvoters\": 0, \"downvoters\": 2 } } }`\n\n• **400 Bad Request**: Returns an error if the vote type is invalid or missing.\n\n• **401 Unauthorized**: Returns an error if the authorization token is invalid or missing.\n\n• **404 Not Found**: Returns an error if the user or blog post is not found.\n\n• **405 Method Not Allowed**: Returns an error if the request method is not POST."
+					},
+					"response": []
+				},
+				{
+					"name": "edit blog",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"bID\": 4, \"title\":\"new title 1\", \"tags\" : [\"c++\"]}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/blog/edit",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"blog",
+								"edit"
+							]
+						},
+						"description": "Allow user to edit blog they created.\n\n**Authorization:**\n\n• Requires a valid authorization token provided in the Authorization header.\n\n**Request Body:**\n\n• **bID** (Integer): The unique identifier of the blog post to be updated. Required.\n\n• **title** (String): The new title for the blog post. Optional.\n\n• **description** (String): The new description or content for the blog post. Optional.\n\n• **tags** (Array of Strings): A new list of tags to replace any existing tags. Optional.\n\n• **templates** (Array of Integer IDs): A new list of template IDs to associate with the blog post. Optional.\n\n• **hidden** (Boolean): The visibility status of the blog post. Optional.\n\n**Responses:**\n\n• **200 OK**:\n\n• Returns a success message and the updated details of the blog post.\n\n• Example Message: \"Blog updated successfully\"\n\n• **400 Bad Request**:\n\n• Returns an error if required fields are missing or malformed.\n\n• **401 Unauthorized**:\n\n• Returns an error if the authorization token is invalid or missing.\n\n• Example Message: \"Invalid or missing authorization token\"\n\n• **403 Forbidden**:\n\n• Returns an error if the user does not have permission to edit the specified blog post.\n\n• Example Message: \"You do not have permission to edit this blog post\"\n\n• Returns an error if the blog post is marked as hidden and cannot be edited.\n\n• Example Message: \"You cannot edit this blog post\"\n\n• **404 Not Found**:\n\n• Returns an error if the user or the specified blog post cannot be found.\n\n• Example Message: \"User not found\"\n\n• Example Message: \"Blog post not found\"\n\n• **500 Internal Server Error**:\n\n• Returns an error if there is an unexpected issue during the update process.\n\n• Example Message: \"Unable to update blog post, database error.\""
+					},
+					"response": []
+				},
+				{
+					"name": "delete blog",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/blog/delete?bID=5",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"blog",
+								"delete"
+							],
+							"query": [
+								{
+									"key": "bID",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Allow user to delete blog they created.\n\n**Authorization:**\n\n  \n\n• Requires a valid authorization token provided in the Authorization header.\n\n  \n\n**Query Parameters:**\n\n  \n\n• **bID** (Integer): The unique identifier of the blog post to be deleted. Required.\n\n  \n\n**Responses:**\n\n  \n\n• **200 OK**:\n\n• Returns a success message indicating the blog post was successfully deleted.\n\n• Example Message: \"Delete successfully\"\n\n• **400 Bad Request**:\n\n• Returns an error if the blog ID (bID) is not provided or is in an invalid format.\n\n• Example Message: \"Invalid or missing blog ID\"\n\n• **401 Unauthorized**:\n\n• Returns an error if the authorization token is invalid or missing.\n\n• Example Message: \"Invalid or missing authorization token\"\n\n• **403 Forbidden**:\n\n• Returns an error if the user does not have permission to delete the specified blog post.\n\n• Example Message: \"You do not have permission to delete this blog post\"\n\n• **404 Not Found**:\n\n• Returns an error if the user or the specified blog post cannot be found.\n\n• Example Message: \"User not found\"\n\n• Example Message: \"Blog post not found\"\n\n• **405 Method Not Allowed**:\n\n• Returns an error if the method used is not DELETE.\n\n• Example Message: \"Method DELETE Not Allowed\"\n\n• **500 Internal Server Error**:\n\n• Returns an error if there is an unexpected issue during the deletion process.\n\n• Example Message: \"Unable to delete blog post, database error.\""
+					},
+					"response": []
+				},
+				{
+					"name": "get blog ",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/blog?bID=3",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"blog"
+							],
+							"query": [
+								{
+									"key": "bID",
+									"value": "3"
+								}
+							]
+						},
+						"description": "Allows fetching of a blog post along with its comments based on provided sorting and pagination parameters.\n\n**Query Parameters:**\n\n  \n\n• **bID** (Integer): The unique identifier of the blog post to retrieve. Required.\n\n• **method** (String, optional): Sorting method for the comments (controversial, popular). Default is sorting by comment ID in ascending order.\n\n• **page** (Integer, optional): The page number of comments to fetch. Default is 1.\n\n• **pageSize** (Integer, optional): The number of comments per page. Default is 5.\n\n  \n\n**Responses:**\n\n  \n\n• **200 OK**:\n\n• Returns the blog post and a paginated list of its comments, including the user details and vote counts for each comment.\n\n• **400 Bad Request**:\n\n• Returns an error if the bID is not provided or is not a valid integer.\n\n• Returns an error if page or pageSize are not positive integers.\n\n• Example Messages:\n\n• \"Blog ID is required.\"\n\n• \"Blog ID must be a valid integer.\"\n\n• \"Page and pageSize must be positive integers.\"\n\n• **404 Not Found**:\n\n• Returns an error if no blog post or no comments are found for the given blog ID.\n\n• Example Messages:\n\n• \"Blog post not found.\"\n\n• \"Comment not found.\"\n\n• **405 Method Not Allowed**:\n\n• Returns an error if the request method is not GET.\n\n• Example Message: \"Method Not Allowed\""
+					},
+					"response": []
+				}
+			],
+			"description": "This endpoint in the API manageblog-related operations including creation, deletion, search, vote, and edit. It supports various methods and ensures that the user is authenticated before performing some actions."
+		},
+		{
+			"name": "comment",
+			"item": [
+				{
+					"name": "create comment",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"bID\":3, \"content\":\"7\", \"pID\":14}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/comment/create",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"comment",
+								"create"
+							]
+						},
+						"description": "Allows a logged-in user to post comments on a blog post or reply to an existing comment.\n\n**Authorization:**\n\n• Requires a valid authorization token provided in the Authorization header.\n\n**Request Body:**\n\n• **bID** (Integer): The unique identifier of the blog post to comment on. Required.\n\n• **content** (String): The content of the comment. Must be a non-empty string. Required.\n\n• **pID** (Integer, optional): The unique identifier of the parent comment, if replying to an existing comment.\n\n**Responses:**\n\n• **201 Created**:\n\n• Returns a success message and the details of the newly created comment.\n\n• Example Message: \"Comment created successfully\"\n\n• **400 Bad Request**:\n\n• Returns an error if the blog ID or content is missing or invalid, or if the content is empty.\n\n• Example Message: \"Blog ID and content are required and content must be a non-empty string.\"\n\n• Returns an error if the parent comment does not belong to the provided blog ID when replying to a comment.\n\n• Example Message: \"Parent comment does not belong to the provided blog.\"\n\n• **401 Unauthorized**:\n\n• Returns an error if the authorization token is invalid or missing.\n\n• Example Message: \"Invalid or missing authorization token\"\n\n• **404 Not Found**:\n\n• Returns an error if the user or the specified blog post/comment cannot be found.\n\n• User not found: \"User not found\"\n\n• Blog post not found or parent comment not found: \"Parent comment not found\"\n\n• **405 Method Not Allowed**:\n\n• Returns an error if the method used is not POST.\n\n• Example Message: \"Method Not Allowed\""
+					},
+					"response": []
+				},
+				{
+					"name": "vote comment",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"cID\":15, \"voteType\":\"upvote\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/comment/vote",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"comment",
+								"vote"
+							]
+						},
+						"description": "Allows a logged-in user to cast a vote (upvote or downvote) on a comment.\n\n  \n  \n  \n\n**Authorization:**\n\n  \n\n• Requires a valid authorization token provided in the Authorization header.\n\n  \n\n**Request Body:**\n\n  \n\n• **cID** (Integer): The unique identifier of the comment to vote on. Required.\n\n• **voteType** (String): The type of vote to cast. Accepts “upvote” or “downvote”. Required.\n\n  \n\n**Responses:**\n\n  \n\n• **200 OK**:\n\n• Returns a success message and the updated details of the comment including the current counts of upvotes and downvotes.\n\n• Example Message: \"Successfully updated upvote\"\n\n• **400 Bad Request**:\n\n• Returns an error if the vote type is invalid or missing.\n\n• Example Message: \"Invalid vote type specified. Must be either 'upvote' or 'downvote'.\"\n\n• **401 Unauthorized**:\n\n• Returns an error if the authorization token is invalid or missing.\n\n• Example Message: \"Invalid or missing authorization token\"\n\n• **404 Not Found**:\n\n• Returns an error if the specified comment cannot be found.\n\n• Example Message: \"Comment not found\"\n\n• **403 Forbidden**:\n\n• Returns an error if the user does not have permission to vote, such as attempting to change a vote improperly or when the comment is locked from voting.\n\n• Example Message: \"You do not have permission to delete this blog post\""
+					},
+					"response": []
+				},
+				{
+					"name": "get comment",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/comment?cID=14&page=1&method=controversial",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"comment"
+							],
+							"query": [
+								{
+									"key": "cID",
+									"value": "14"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "method",
+									"value": "controversial"
+								}
+							]
+						},
+						"description": "Allows fetching of sub-comments related to a parent comment, with options for sorting and pagination.\n\n**Method:**\n\n• **GET**\n\n**URL:**\n\n• /api/comments/subcomments\n\n**Query Parameters:**\n\n• **cID** (Integer): The unique identifier of the parent comment for which sub-comments are to be retrieved. Required.\n\n• **method** (String, optional): Method for sorting the sub-comments (controversial, popular). Default sorting is by the sub-comment ID in ascending order.\n\n• **page** (Integer, optional): The page number of sub-comments to fetch. Default is 1.\n\n• **pageSize** (Integer, optional): The number of sub-comments per page. Default is 5.\n\n**Responses:**\n\n• **200 OK**:\n\n• Returns a list of sub-comments, each including details about the user who posted and vote counts.\n\n• **400 Bad Request**:\n\n• Returns an error if the comment ID is missing or not a valid integer, or if pagination parameters are invalid.\n\n• Example Messages:\n\n• \"Comment ID must be a valid integer.\"\n\n• \"Page and pageSize must be positive integers.\"\n\n• **404 Not Found**:\n\n• Returns an error if no sub-comments are found for the given parent comment ID.\n\n• Example Message: \"Comment not found.\"\n\n• **405 Method Not Allowed**:\n\n• Returns an error if the request method is not GET.\n\n• Example Message: \"Method Not Allowed\"\n\n**Sorting :**\n\n• **Controversial**: Sorts sub-comments based on a combination of upvotes, downvotes, and the presence of further sub-comments to highlight discussions with mixed reactions.\n\n• **Popular**: Sorts sub-comments by the number of upvotes to showcase the most appreciated responses.\n\n• **Default**: Sub-comments are sorted by their unique ID, reflecting the order in which they were added."
+					},
+					"response": []
+				}
+			],
+			"description": "This endpoint in the API manage comment-related operations including creation, search, and vote. It supports various methods and ensures that the user is authenticated before performing some actions."
+		},
+		{
+			"name": "report",
+			"item": [
+				{
+					"name": "report comment",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"cID\":17, \"explanation\":\"i don't like this\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/report/comment",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"report",
+								"comment"
+							]
+						},
+						"description": "Creates a report for a specific comment.\n\n  \n\n**Request Body:**\n\n  \n\n• **cID** (Integer): The unique identifier of the comment to report. Required.\n\n• **explanation** (String): The reason or explanation for the report. Required.\n\n  \n\n**Responses:**\n\n  \n\n• **201 Created**:\n\n• Returns a success message and details of the newly created comment report.\n\n• Example Message: \"Comment report created successfully\"\n\n• **400 Bad Request**:\n\n• Returns an error if the comment ID or explanation is missing.\n\n• Example Message: \"Comment ID and explanation are required.\"\n\n• **401 Unauthorized**:\n\n• Returns an error if the authorization token is invalid or missing.\n\n• Example Message: \"Invalid or missing authorization token\"\n\n• **404 Not Found**:\n\n• Returns an error if the specified comment does not exist.\n\n• Example Message: \"Comment post not found\"\n\n• **409 Conflict**:\n\n• Returns an error if a report has already been submitted by the user for the same comment.\n\n• Example Message: \"You have already reported this comment.\""
+					},
+					"response": []
+				},
+				{
+					"name": "delete comment report",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyZW1haWwiOiJ1c2VyMUBnbWFpbC5jb20iLCJpYXQiOjE3MzA2MjQxODgsImV4cCI6MTczMDYyNTk4OH0.3jB0z0x6GyAeUfSdLjYzc3Pab7SQdGFfGUbnsLkXUBY",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/report/comment?cID=16",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"report",
+								"comment"
+							],
+							"query": [
+								{
+									"key": "cID",
+									"value": "16"
+								}
+							]
+						},
+						"description": "Deletes a previously submitted comment report.\n\n  \n\n**Query Parameters:**\n\n  \n\n• **cID** (Integer): The unique identifier of the comment report to delete. Required.\n\n  \n\n**Responses:**\n\n  \n\n• **200 OK**:\n\n• Returns a success message indicating the comment report was successfully deleted.\n\n• Example Message: \"Comment report deleted successfully\"\n\n• **400 Bad Request**:\n\n• Returns an error if the comment ID is missing.\n\n• Example Message: \"Comment ID is required for deletion.\"\n\n• **401 Unauthorized**:\n\n• Returns an error if the authorization token is invalid or missing.\n\n• Example Message: \"Invalid or missing authorization token\"\n\n• **404 Not Found**:\n\n• Returns an error if the comment report cannot be found or is not owned by the user.\n\n• Example Message: \"Comment report not found or not yours to delete\""
+					},
+					"response": []
+				},
+				{
+					"name": "delete blog report",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"bID\":4}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/report/blog?bID=3",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"report",
+								"blog"
+							],
+							"query": [
+								{
+									"key": "bID",
+									"value": "3"
+								}
+							]
+						},
+						"description": "Deletes a previously submitted blog report.\n\n  \n\n**Query Parameters:**\n\n  \n\n• **bID** (Integer): The unique identifier of the blog report to delete. Required.\n\n  \n\n**Responses:**\n\n  \n\n• **200 OK**:\n\n• Returns a success message indicating the blog report was successfully deleted.\n\n• Example Message: \"Blog report deleted successfully\"\n\n• **400 Bad Request**:\n\n• Returns an error if the blog ID is missing.\n\n• Example Message: \"Blog ID is required for deletion.\"\n\n• **401 Unauthorized**:\n\n• Returns an error if the authorization token is invalid.\n\n• Example Message: \"Invalid or missing authorization token\"\n\n• **404 Not Found**:\n\n• Returns an error if the blog report cannot be found or is not owned by the user.\n\n• Example Message: \"Blog report not found or not yours to delete\""
+					},
+					"response": []
+				},
+				{
+					"name": "report blog",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"bID\":3, \"explanation\":\"I hate this\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/report/blog",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"report",
+								"blog"
+							]
+						},
+						"description": "Creates a report for a specific blog post.\n\n  \n\n**Request Body:**\n\n  \n\n• **bID** (Integer): The unique identifier of the blog post to report. Required.\n\n• **explanation** (String): The reason or explanation for the report. Required.\n\n  \n\n**Responses:**\n\n  \n\n• **201 Created**:\n\n• Returns a success message and details of the newly created blog report.\n\n• Example Message: \"Blog report created successfully\"\n\n• **400 Bad Request**:\n\n• Returns an error if the blog ID or explanation is missing.\n\n• Example Message: \"Blog ID and explanation are required.\"\n\n• **401 Unauthorized**:\n\n• Returns an error if the authorization token is invalid or missing.\n\n• Example Message: \"Invalid or missing authorization token\"\n\n• **404 Not Found**:\n\n• Returns an error if the specified blog does not exist.\n\n• Example Message: \"Blog post not found\"\n\n• **409 Conflict**:\n\n• Returns an error if a report has already been submitted by the user for the same blog.\n\n• Example Message: \"You have already reported this blog.\""
+					},
+					"response": []
+				},
+				{
+					"name": "get all reports for admin",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/report/admin?type=comment",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"report",
+								"admin"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "comment"
+								}
+							]
+						},
+						"description": "Allows authorized administrators to retrieve blog or comment data based on specified criteria and pagination settings.\n\n**Authorization:**\n\n• Requires a valid authorization token provided in the Authorization header.\n\n**Query Parameters:**\n\n• **type** (String): Specifies the data type to retrieve (blog or comment). Required.\n\n• **page** (Integer, optional): The page number of results to fetch. Default is 1.\n\n• **pageSize** (Integer, optional): The number of items per page. Default is 5.\n\n**Responses:**\n\n• **200 OK**:\n\n• Returns a list of blogs or comments based on the specified type and pagination settings.\n\n• **400 Bad Request**:\n\n• Returns an error if the type parameter is missing or invalid.\n\n• Example Message: \"Invalid type parameter\"\n\n• **401 Unauthorized**:\n\n• Returns an error if the authorization token is missing or invalid.\n\n• Example Message: \"Invalid or missing authorization token\"\n\n• **403 Forbidden**:\n\n• Returns an error if the user does not have administrative permissions.\n\n• Example Message: \"Insufficient permissions\""
+					},
+					"response": []
+				},
+				{
+					"name": "admin edit hidden status",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Check if the environment variable for the token exists",
+									"var accessToken = pm.environment.get('accessToken');",
+									"",
+									"if (accessToken) {",
+									"    // Set the Authorization header to use the Bearer token",
+									"    pm.request.headers.add({",
+									"        key: 'Authorization',",
+									"        value: 'Bearer ' + accessToken",
+									"    });",
+									"} else {",
+									"    console.log('No access token found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 14,\n    \"type\": \"blog\",\n    \"hidden\":true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/report/admin",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"report",
+								"admin"
+							]
+						},
+						"description": "Allows authorized administrators to update the visibility status of a specified blog or comment.\n\n**Authorization:**\n\n• Requires a valid authorization token provided in the Authorization header.\n\n**Request Body:**\n\n• **id** (Integer): The unique identifier of the blog or comment to be updated. Required.\n\n• **type** (String): Specifies whether the item is a blog or comment. Required.\n\n• **hidden** (Boolean): The new visibility status to set. Required.\n\n**Responses:**\n\n• **200 OK**: Returns the updated blog or comment data.\n\n• **400 Bad Request**:\n\n• Returns an error if any parameters are missing or invalid.\n\n• Example Messages:\n\n• \"Hidden must be defined as true or false.\"\n\n• \"Type must be 'blog' or 'comment'.\"\n\n• **401 Unauthorized**:\n\n• Returns an error if the authorization token is invalid.\n\n• Example Message: \"Invalid or missing authorization token\"\n\n• **403 Forbidden**:\n\n• Returns an error if the user does not have the necessary permissions.\n\n• Example Message: \"Insufficient permissions\"\n\n• **404 Not Found**:\n\n• Returns an error if the specified blog or comment does not exist.\n\n• Example Messages:\n\n• \"Blog not found\"\n\n• \"Comment not found\""
+					},
+					"response": []
+				}
+			],
+			"description": "This endpoint in the API manage report-related operations including report comment and blog, delete report, view report and hide blog and comment for admin. It supports various methods and ensures that the user is authenticated before performing some actions."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

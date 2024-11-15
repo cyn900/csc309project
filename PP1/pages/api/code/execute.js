@@ -42,6 +42,6 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     // Handle errors
-    res.status(500).json({ error: `Failed to execute code: ${error.message}` });
+    res.status(400).json({ error: `Failed to execute code: ${error.message}` });
   }
 }
