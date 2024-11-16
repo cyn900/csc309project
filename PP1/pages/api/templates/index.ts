@@ -183,12 +183,10 @@ const handlePost = isLoggedIn(
         },
       });
 
-      res
-        .status(201)
-        .json({
-          message: "Template created successfully.",
-          template: newTemplate,
-        });
+      res.status(201).json({
+        message: "Template created successfully.",
+        template: newTemplate,
+      });
     } catch (error: any) {
       console.error("Error creating template:", error);
       res.status(500).json({ message: "Internal server error." });
