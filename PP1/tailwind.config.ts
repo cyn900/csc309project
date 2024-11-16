@@ -9,11 +9,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Define custom colors for background and foreground that can be controlled by CSS variables
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
     },
   },
+  darkMode: "class", // Ensures dark mode is class-based (you could also use 'media' for system preference)
   plugins: [],
 };
+
 export default config;

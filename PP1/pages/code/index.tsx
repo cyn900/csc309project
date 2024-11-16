@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import { useTheme } from "../../contexts/ThemeContext"; // Import the useTheme hook
 
 // Dynamically import Monaco Editor with SSR disabled
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
@@ -10,6 +11,8 @@ const CodeExecution: React.FC = () => {
   const [code, setCode] = useState<string>("");
   const [output, setOutput] = useState<string>("");
   const [language, setLanguage] = useState<string>("javascript");
+
+  const { isDarkMode } = useTheme(); // Access the current theme
 
   useEffect(() => {
     // This will ensure Monaco Editor is only initialized once the component is mounted
@@ -36,9 +39,17 @@ const CodeExecution: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-900">
-      <div className="w-full max-w-4xl sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl p-6 bg-gray-800 rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-white text-center text-lg sm:text-2xl md:text-3xl">
+    <div
+      className={`flex h-screen items-center justify-center ${
+        isDarkMode ? "bg-gray-900" : "bg-white"
+      }`}
+    >
+      <div
+        className={`w-full max-w-4xl sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl p-6 rounded-lg shadow-lg ${
+          isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 text-black"
+        }`}
+      >
+        <h1 className="text-3xl font-bold text-center text-lg sm:text-2xl md:text-3xl">
           Code Execution
         </h1>
         <p className="text-gray-400 text-center mt-2 text-sm sm:text-base md:text-lg">
@@ -56,7 +67,11 @@ const CodeExecution: React.FC = () => {
             </label>
             <select
               id="language"
-              className="mt-1 block w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-blue-500 focus:border-blue-500"
+              className={`mt-1 block w-full px-4 py-2 ${
+                isDarkMode
+                  ? "bg-gray-700 text-white border-gray-600"
+                  : "bg-white text-black border-gray-300"
+              } rounded-md focus:ring-blue-500 focus:border-blue-500`}
               value={language}
               onChange={handleLanguageChange}
             >
@@ -96,7 +111,7 @@ const CodeExecution: React.FC = () => {
               language={language}
               value={code}
               onChange={handleEditorChange} // Update state on change
-              theme="vs-dark"
+              theme={isDarkMode ? "vs-dark" : "vs-light"} // Switch Monaco theme based on mode
               options={{
                 selectOnLineNumbers: true,
                 minimap: { enabled: false },

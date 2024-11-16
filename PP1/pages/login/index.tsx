@@ -1,8 +1,11 @@
 import React, { useState } from "react";
+import { useTheme } from "../../contexts/ThemeContext"; // Import the useTheme hook
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+
+  const { isDarkMode, toggleTheme } = useTheme(); // Access the current theme and toggle function
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -11,9 +14,17 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-900">
-      <div className="w-full max-w-lg p-6 bg-gray-800 rounded-lg shadow-lg sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl">
-        <h1 className="text-3xl font-bold text-white text-center text-lg sm:text-2xl md:text-3xl">
+    <div
+      className={`flex h-screen items-center justify-center ${
+        isDarkMode ? "bg-gray-900" : "bg-white"
+      }`}
+    >
+      <div
+        className={`w-full max-w-lg p-6 ${
+          isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 text-black"
+        } rounded-lg shadow-lg sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl`}
+      >
+        <h1 className="text-3xl font-bold text-center text-lg sm:text-2xl md:text-3xl">
           Scriptorium
         </h1>
         <p className="text-gray-400 text-center mt-2 text-sm sm:text-base md:text-lg">
@@ -30,7 +41,11 @@ const Login: React.FC = () => {
             <input
               id="email"
               type="email"
-              className="mt-1 block w-full px-4 py-3 sm:py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-blue-500 focus:border-blue-500 sm:min-h-[50px] md:min-h-[40px]"
+              className={`mt-1 block w-full px-4 py-3 sm:py-2 rounded-md focus:ring-blue-500 focus:border-blue-500 ${
+                isDarkMode
+                  ? "bg-gray-700 text-white border-gray-600"
+                  : "bg-white text-black border-gray-300"
+              } sm:min-h-[50px] md:min-h-[40px]`}
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -47,7 +62,11 @@ const Login: React.FC = () => {
             <input
               id="password"
               type="password"
-              className="mt-1 block w-full px-4 py-3 sm:py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-blue-500 focus:border-blue-500 sm:min-h-[50px] md:min-h-[40px]"
+              className={`mt-1 block w-full px-4 py-3 sm:py-2 rounded-md focus:ring-blue-500 focus:border-blue-500 ${
+                isDarkMode
+                  ? "bg-gray-700 text-white border-gray-600"
+                  : "bg-white text-black border-gray-300"
+              } sm:min-h-[50px] md:min-h-[40px]`}
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
