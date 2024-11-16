@@ -12,7 +12,12 @@ const executeInterpretedCode = (command, inputs = [], timeout = 10000) => {
 
     const timer = setTimeout(() => {
       process.kill(); // Terminate the process if timeout is reached
-      reject({ status: 400, message: "Execution timed out" });
+      reject({
+        status: 400,
+        stdout: output.trim(),
+        stderr: errorOutput.trim(),
+        message: "Execution timed out",
+      });
     }, timeout);
 
     process.stdout.on("data", (data) => {
@@ -27,24 +32,15 @@ const executeInterpretedCode = (command, inputs = [], timeout = 10000) => {
       clearTimeout(timer);
       if (code !== 0) {
         // Handle known error messages with more detailed output
-        if (errorOutput.includes("ZeroDivisionError")) {
-          return reject({
-            message: "Runtime error: Division by zero detected in the code.",
-          });
-        } else if (errorOutput.includes("SyntaxError")) {
-          return reject({
-            message: `Syntax error in the provided code: ${errorOutput.trim()}`,
-          });
-        } else if (errorOutput.includes("ReferenceError")) {
-          return reject({ message: `Reference error: ${errorOutput.trim()}` });
-        }
         return reject({
+          stdout: output.trim(),
+          stderr: errorOutput.trim(),
           message: `Execution error: ${
             errorOutput.trim() || `Process exited with code ${code}`
           }`,
         });
       }
-      resolve(output.trim());
+      resolve({ stdout: output.trim(), stderr: errorOutput.trim() });
     });
 
     if (inputs.length > 0) {
@@ -91,27 +87,40 @@ async function executeCompiledCode(
         runCommand = `${tempDir}/${fileName}`;
         break;
       default:
-        return reject("Unsupported compiled language");
+        return reject({
+          stdout: "",
+          stderr: "",
+          message: "Unsupported compiled language",
+        });
     }
 
     fs.writeFileSync(filePath, code);
 
     const compileProcess = spawn(compileCommand, { shell: true });
 
+    let compileErrorOutput = "";
+
     const compileTimer = setTimeout(() => {
       compileProcess.kill();
-      reject(new Error("Compilation timed out"));
+      reject({
+        stdout: "",
+        stderr: compileErrorOutput.trim(),
+        message: "Compilation timed out",
+      });
     }, timeout);
 
     compileProcess.stderr.on("data", (data) => {
-      clearTimeout(compileTimer);
-      reject(`Compilation error: ${data.toString().trim()}`);
+      compileErrorOutput += data.toString();
     });
 
     compileProcess.on("close", (code) => {
       clearTimeout(compileTimer);
       if (code !== 0) {
-        return reject("Compilation failed.");
+        return reject({
+          stdout: "",
+          stderr: compileErrorOutput.trim(),
+          message: "Compilation failed.",
+        });
       }
 
       const runProcess = spawn(runCommand, { shell: true });
@@ -121,7 +130,11 @@ async function executeCompiledCode(
 
       const runTimer = setTimeout(() => {
         runProcess.kill();
-        reject(new Error("Execution timed out"));
+        reject({
+          stdout: output.trim(),
+          stderr: errorOutput.trim(),
+          message: "Execution timed out",
+        });
       }, timeout);
 
       runProcess.stdout.on("data", (data) => {
@@ -134,30 +147,30 @@ async function executeCompiledCode(
 
       runProcess.on("close", (code) => {
         clearTimeout(runTimer);
-        if (code !== 0) {
-          if (errorOutput.includes("ArithmeticException")) {
-            return reject({
-              message:
-                "Runtime error: Division by zero or invalid arithmetic operation.",
-            });
-          } else if (errorOutput.includes("Exception")) {
-            return reject({ message: `Runtime error: ${errorOutput.trim()}` });
+        // Clean up temporary files
+        fs.unlinkSync(filePath);
+        if (language === "java") {
+          const classFilePath = path.join(tempDir, `${javaClassName}.class`);
+          if (fs.existsSync(classFilePath)) {
+            fs.unlinkSync(classFilePath);
           }
+        } else {
+          const compiledFilePath = path.join(tempDir, fileName);
+          if (fs.existsSync(compiledFilePath)) {
+            fs.unlinkSync(compiledFilePath);
+          }
+        }
+
+        if (code !== 0) {
           return reject({
+            stdout: output.trim(),
+            stderr: errorOutput.trim(),
             message: `Execution error: ${
               errorOutput.trim() || `Process exited with code ${code}`
             }`,
           });
         }
-        resolve(output.trim());
-
-        // Clean up temporary files
-        fs.unlinkSync(filePath);
-        if (language === "java") {
-          fs.unlinkSync(path.join(tempDir, `${javaClassName}.class`));
-        } else {
-          fs.unlinkSync(path.join(tempDir, fileName));
-        }
+        resolve({ stdout: output.trim(), stderr: errorOutput.trim() });
       });
 
       if (inputs.length > 0) {

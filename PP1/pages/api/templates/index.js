@@ -3,73 +3,111 @@ import { isLoggedIn } from "../../../utils/auth";
 import jwt from "jsonwebtoken";
 
 const handleGet = async (req, res) => {
-  const {
-    page = 1,
-    limit = 10,
-    title = "",
-    tags = [],
-    explanation = "",
-  } = req.query;
-
-  if (isNaN(parseInt(page)) || isNaN(parseInt(limit))) {
-    return res.status(400).json({
-      error: "Page and limit query parameters must be positive integers",
-    });
+  if (req.method !== "GET") {
+    res.setHeader("Allow", ["GET"]);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
-  const offset = (parseInt(page) - 1) * parseInt(limit);
+  let { title, tags, fork, explanation, page = 1, pageSize = 5 } = req.query;
 
-  // Ensure `tags` is an array
-  const tagArray = Array.isArray(tags) ? tags : [tags];
+  // Convert and validate pagination parameters
+  page = parseInt(page, 10);
+  pageSize = parseInt(pageSize, 10);
+  if (isNaN(page) || page < 1 || isNaN(pageSize) || pageSize < 1) {
+    return res
+      .status(400)
+      .json({ message: "Page and pageSize must be positive integers." });
+  }
 
-  // Build search conditions
+  // Validate data type for title
+  if (title && typeof title !== "string") {
+    return res
+      .status(400)
+      .json({ message: "Incorrect data type provided for title." });
+  }
+
   const conditions = [];
 
-  if (title) {
-    conditions.push({ title: { contains: title } });
+  // Add fork condition dynamically
+  if (typeof fork !== "undefined") {
+    if (fork === "true") {
+      conditions.push({ fork: true });
+    } else if (fork === "false") {
+      conditions.push({ fork: false });
+    } else {
+      return res
+        .status(400)
+        .json({ message: "Fork must be either 'true' or 'false'." });
+    }
+  } else {
+    // Default to filtering out forked templates
+    conditions.push({ fork: false });
   }
 
-  if (tagArray.length) {
+  // Normalize tags to always be an array
+  if (tags) {
+    tags = typeof tags === "string" ? [tags] : tags;
+    if (!Array.isArray(tags)) {
+      return res
+        .status(400)
+        .json({ message: "Tags must be an array or a single string." });
+    }
+  }
+
+  // Parse JSON if tags are passed as a JSON string
+  try {
+    if (typeof tags === "string") tags = JSON.parse(tags);
+  } catch (err) {
+    return res.status(400).json({ message: "Invalid JSON format for tags." });
+  }
+
+  // Build conditions based on tags
+  if (tags && tags.length) {
     conditions.push({
       tags: {
         some: {
           value: {
-            in: tagArray,
+            in: tags,
           },
         },
       },
     });
   }
 
-  if (explanation) {
-    conditions.push({
-      explanation: { contains: explanation },
-    });
+  // Add title condition
+  if (title) {
+    conditions.push({ title: { contains: title } });
   }
 
-  const searchConditions = conditions.length ? { AND: conditions } : {};
+  // Add explanation condition
+  if (explanation) {
+    conditions.push({ explanation: { contains: explanation } });
+  }
 
   try {
-    const templates = await prisma.template.findMany({
-      skip: offset,
-      take: parseInt(limit),
-      where: searchConditions,
+    console.log("Conditions:", JSON.stringify(conditions, null, 2));
+
+    const paginatedTemplates = await prisma.template.findMany({
+      where: { AND: conditions },
+      include: {
+        tags: true,
+        user: true,
+        blogs: true,
+      },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     });
 
-    const totalTemplates = await prisma.template.count({
-      where: searchConditions,
-    });
-
-    res.status(200).json({
-      templates,
-      totalPages: Math.ceil(totalTemplates / limit),
-      currentPage: parseInt(page),
-    });
+    res.status(200).json(paginatedTemplates);
   } catch (error) {
-    console.error("Error fetching templates:", error);
+    console.error("Search query failed:", {
+      error: error.message,
+      stack: error.stack,
+      conditions,
+    });
     res
       .status(500)
-      .json({ error: "An error occurred while fetching templates" });
+      .json({ message: "Internal server error while executing search" });
   }
 };
 
@@ -88,22 +126,37 @@ const handlePost = isLoggedIn(async (req, res) => {
       .json({ error: "Template with this title already exists" });
   }
 
-  if (typeof title !== 'string') {
-    return res.status(400).json({ error: "Invalid type for title; expected 'string'." });
+  if (typeof title !== "string") {
+    return res
+      .status(400)
+      .json({ error: "Invalid type for title; expected 'string'." });
   }
-  if (typeof explanation !== 'string') {
-    return res.status(400).json({ error: "Invalid type for explanation; expected 'string'." });
+  if (typeof explanation !== "string") {
+    return res
+      .status(400)
+      .json({ error: "Invalid type for explanation; expected 'string'." });
   }
-  if (!Array.isArray(tags) || !tags.every(tag => typeof tag === 'string') || tags.length > 10) {
-    return res.status(400).json({ error: "Invalid type for tags; expected an array of strings and no more than 10 tags." });
+  if (
+    !Array.isArray(tags) ||
+    !tags.every((tag) => typeof tag === "string") ||
+    tags.length > 10
+  ) {
+    return res.status(400).json({
+      error:
+        "Invalid type for tags; expected an array of strings and no more than 10 tags.",
+    });
   }
-  if (typeof code !== 'string') {
-    return res.status(400).json({ error: "Invalid type for code; expected 'string'." });
+  if (typeof code !== "string") {
+    return res
+      .status(400)
+      .json({ error: "Invalid type for code; expected 'string'." });
   }
-  if (typeof fork !== 'boolean') {
-    return res.status(400).json({ error: "Invalid type for fork; expected 'boolean'." });
+  if (typeof fork !== "boolean") {
+    return res
+      .status(400)
+      .json({ error: "Invalid type for fork; expected 'boolean'." });
   }
-  
+
   if (!title) {
     return res.status(400).json({ error: "Title is required" });
   }
@@ -198,7 +251,7 @@ const handleDelete = isLoggedIn(async (req, res) => {
 
     // If no template found, return an error
     if (!template) {
-        return res.status(404).json({ error: "Template not found" });
+      return res.status(404).json({ error: "Template not found" });
     }
 
     if (template.uID !== user.uID) {
@@ -224,23 +277,40 @@ const handleUpdate = isLoggedIn(async (req, res) => {
   const { title, explanation, tags, code, fork, tID } = req.body;
 
   // Type validations
-  if (typeof tID !== 'number') {
-    return res.status(400).json({ error: "Invalid type for Template ID (tID); expected 'number'." });
+  if (typeof tID !== "number") {
+    return res.status(400).json({
+      error: "Invalid type for Template ID (tID); expected 'number'.",
+    });
   }
-  if (typeof title !== 'string') {
-    return res.status(400).json({ error: "Invalid type for title; expected 'string'." });
+  if (typeof title !== "string") {
+    return res
+      .status(400)
+      .json({ error: "Invalid type for title; expected 'string'." });
   }
-  if (typeof explanation !== 'string') {
-    return res.status(400).json({ error: "Invalid type for explanation; expected 'string'." });
+  if (typeof explanation !== "string") {
+    return res
+      .status(400)
+      .json({ error: "Invalid type for explanation; expected 'string'." });
   }
-  if (!Array.isArray(tags) || !tags.every(tag => typeof tag === 'string') || tags.length > 10) {
-    return res.status(400).json({ error: "Invalid type for tags; expected an array of strings and no more than 10 tags." });
+  if (
+    !Array.isArray(tags) ||
+    !tags.every((tag) => typeof tag === "string") ||
+    tags.length > 10
+  ) {
+    return res.status(400).json({
+      error:
+        "Invalid type for tags; expected an array of strings and no more than 10 tags.",
+    });
   }
-  if (typeof code !== 'string') {
-    return res.status(400).json({ error: "Invalid type for code; expected 'string'." });
+  if (typeof code !== "string") {
+    return res
+      .status(400)
+      .json({ error: "Invalid type for code; expected 'string'." });
   }
-  if (typeof fork !== 'boolean') {
-    return res.status(400).json({ error: "Invalid type for fork; expected 'boolean'." });
+  if (typeof fork !== "boolean") {
+    return res
+      .status(400)
+      .json({ error: "Invalid type for fork; expected 'boolean'." });
   }
 
   const token = req.headers.authorization?.split(" ")[1];
@@ -286,18 +356,20 @@ const handleUpdate = isLoggedIn(async (req, res) => {
     const duplicateTitle = await prisma.template.findFirst({
       where: {
         title: title,
-        tID: { not: tID } // Exclude the current template from the search
-      }
+        tID: { not: tID }, // Exclude the current template from the search
+      },
     });
 
     if (duplicateTitle) {
-      return res.status(409).json({ error: "Another template with the same title already exists" });
+      return res
+        .status(409)
+        .json({ error: "Another template with the same title already exists" });
     }
 
     // Process tags and templates
-    const tagConnectOrCreate = tags.map(tag => ({
+    const tagConnectOrCreate = tags.map((tag) => ({
       where: { value: tag },
-      create: { value: tag }
+      create: { value: tag },
     }));
 
     // Update the template, using existing values where new ones are not provided
@@ -308,10 +380,10 @@ const handleUpdate = isLoggedIn(async (req, res) => {
         explanation: explanation ?? existingTemplate.explanation,
         code: code ?? existingTemplate.code,
         fork: fork ?? existingTemplate.fork,
-        uID: user.uID,  // Assuming uID should always be set to the current user's ID
+        uID: user.uID, // Assuming uID should always be set to the current user's ID
         tags: {
           set: [], // Clear existing tags first
-          connectOrCreate: tagConnectOrCreate
+          connectOrCreate: tagConnectOrCreate,
         },
       },
     });
@@ -322,7 +394,9 @@ const handleUpdate = isLoggedIn(async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating template:", error);
-    res.status(500).json({ error: "An error occurred while updating the template" });
+    res
+      .status(500)
+      .json({ error: "An error occurred while updating the template" });
   }
 });
 
