@@ -1,9 +1,28 @@
-const { v4: uuidv4 } = require("uuid");
-const { spawn } = require("child_process");
-const fs = require("fs");
-const path = require("path");
+import { spawn } from "child_process";
+import fs from "fs";
+import path from "path";
+import { v4 as uuidv4 } from "uuid";
 
-const executeInterpretedCode = (command, inputs = [], timeout = 10000) => {
+// Define types for function parameters and return values
+type ExecutionResult = {
+  stdout: string;
+  stderr: string;
+};
+
+type Language = "javascript" | "python" | "java" | "c" | "cpp";
+
+/**
+ * Executes interpreted code for languages like JavaScript or Python.
+ * @param command Command to execute the code.
+ * @param inputs Input to pass to the program.
+ * @param timeout Maximum execution time in milliseconds.
+ * @returns Promise resolving to the output and error.
+ */
+const executeInterpretedCode = (
+  command: string,
+  inputs: string[] = [],
+  timeout: number = 10000
+): Promise<ExecutionResult> => {
   return new Promise((resolve, reject) => {
     const process = spawn(command, { shell: true });
 
@@ -13,7 +32,6 @@ const executeInterpretedCode = (command, inputs = [], timeout = 10000) => {
     const timer = setTimeout(() => {
       process.kill(); // Terminate the process if timeout is reached
       reject({
-        status: 400,
         stdout: output.trim(),
         stderr: errorOutput.trim(),
         message: "Execution timed out",
@@ -31,7 +49,6 @@ const executeInterpretedCode = (command, inputs = [], timeout = 10000) => {
     process.on("close", (code) => {
       clearTimeout(timer);
       if (code !== 0) {
-        // Handle known error messages with more detailed output
         return reject({
           stdout: output.trim(),
           stderr: errorOutput.trim(),
@@ -50,12 +67,20 @@ const executeInterpretedCode = (command, inputs = [], timeout = 10000) => {
   });
 };
 
-async function executeCompiledCode(
-  language,
-  code,
-  inputs = [],
-  timeout = 30000
-) {
+/**
+ * Executes compiled code for languages like Java, C, or C++.
+ * @param language Programming language (e.g., java, c, cpp).
+ * @param code Source code to compile and execute.
+ * @param inputs Input to pass to the program.
+ * @param timeout Maximum execution time in milliseconds.
+ * @returns Promise resolving to the output and error.
+ */
+const executeCompiledCode = (
+  language: Language,
+  code: string,
+  inputs: string[] = [],
+  timeout: number = 30000
+): Promise<ExecutionResult> => {
   return new Promise((resolve, reject) => {
     const tempDir = path.join(__dirname, "temp");
     if (!fs.existsSync(tempDir)) {
@@ -63,7 +88,10 @@ async function executeCompiledCode(
     }
 
     const fileName = `program-${uuidv4()}`;
-    let filePath, compileCommand, runCommand, javaClassName;
+    let filePath: string,
+      compileCommand: string,
+      runCommand: string,
+      javaClassName: string;
 
     switch (language) {
       case "java":
@@ -179,6 +207,6 @@ async function executeCompiledCode(
       runProcess.stdin.end();
     });
   });
-}
+};
 
-module.exports = { executeInterpretedCode, executeCompiledCode };
+export { executeInterpretedCode, executeCompiledCode };
