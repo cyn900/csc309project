@@ -133,7 +133,11 @@ const CodeExecution: React.FC = () => {
           <h2 className="text-xl font-medium text-gray-300">
             Execution Result
           </h2>
-          <pre className="bg-gray-700 text-white p-4 rounded-md mt-2 whitespace-pre-wrap">
+          <pre
+            className={`${
+              isDarkMode ? "bg-gray-700 text-white" : "bg-gray-100 text-black"
+            } p-4 rounded-md mt-2 whitespace-pre-wrap`}
+          >
             {output}
           </pre>
         </div>
