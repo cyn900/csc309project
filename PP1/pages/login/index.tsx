@@ -22,8 +22,11 @@ const Login: React.FC = () => {
       // Set authorization header for future requests
       axios.defaults.headers.common['Authorization'] = response.data.accessToken;
       
-      // Redirect to blogs page
-      router.push('/blogs');
+      // Dispatch custom event to notify Navbar
+      window.dispatchEvent(new Event('login'));
+      
+      // Redirect to home or dashboard
+      router.push('/');
     } catch (error) {
       console.error('Login failed:', error);
       // Handle error (you might want to show an error message to the user)
