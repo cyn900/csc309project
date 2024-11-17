@@ -40,9 +40,9 @@ const CodeExecution: React.FC = () => {
 
   return (
     <div
-      className={`flex h-screen items-center justify-center ${
+      className={`flex flex-col min-h-screen items-center justify-center ${
         isDarkMode ? "bg-gray-900" : "bg-white"
-      }`}
+      } mt-6`} // Ensure that this section matches the navbar
     >
       <div
         className={`w-full max-w-4xl sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl p-6 rounded-lg shadow-lg ${
@@ -129,7 +129,7 @@ const CodeExecution: React.FC = () => {
         </form>
 
         {/* Output Area */}
-        <div className="mt-6">
+        <div className="mt-6 mb-10">
           <h2 className="text-xl font-medium text-gray-300">
             Execution Result
           </h2>

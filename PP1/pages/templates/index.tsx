@@ -26,37 +26,37 @@ const CodeTemplateSearch: React.FC = () => {
   const [explanationQuery, setExplanationQuery] = useState<string>("");
 
   // Fetch tags for filtering
-  useEffect(() => {
-    fetch("/api/tags")
-      .then((response) => response.json())
-      .then((data) => setTags(data));
-  }, []);
+  // useEffect(() => {
+  //   fetch("/api/tags")
+  //     .then((response) => response.json())
+  //     .then((data) => setTags(data));
+  // }, []);
 
   // Fetch templates based on search query, selected tags, and other filters
-  useEffect(() => {
-    const fetchTemplates = async () => {
-      const queryParams = new URLSearchParams({
-        searchQuery,
-        tags: selectedTags.join(","),
-        forkedOnly: forkedOnly.toString(),
-        explanationQuery,
-      }).toString();
-      const response = await fetch(`/api/templates?${queryParams}`);
-      const data = await response.json();
-      setTemplates(data);
-    };
+  // useEffect(() => {
+  //   const fetchTemplates = async () => {
+  //     const queryParams = new URLSearchParams({
+  //       searchQuery,
+  //       tags: selectedTags.join(","),
+  //       forkedOnly: forkedOnly.toString(),
+  //       explanationQuery,
+  //     }).toString();
+  //     const response = await fetch(`/api/templates?${queryParams}`);
+  //     const data = await response.json();
+  //     setTemplates(data);
+  //   };
 
-    fetchTemplates();
-  }, [searchQuery, selectedTags, forkedOnly, explanationQuery]);
+  //   fetchTemplates();
+  // }, [searchQuery, selectedTags, forkedOnly, explanationQuery]);
 
   // Handle tag filter change
-  const handleTagChange = (tagId: number) => {
-    setSelectedTags((prevTags) =>
-      prevTags.includes(tagId)
-        ? prevTags.filter((id) => id !== tagId)
-        : [...prevTags, tagId]
-    );
-  };
+  // const handleTagChange = (tagId: number) => {
+  //   setSelectedTags((prevTags) =>
+  //     prevTags.includes(tagId)
+  //       ? prevTags.filter((id) => id !== tagId)
+  //       : [...prevTags, tagId]
+  //   );
+  // };
 
   return (
     <div
@@ -167,18 +167,6 @@ const CodeTemplateSearch: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* Theme Toggle Button */}
-      <button
-        onClick={toggleTheme}
-        className={`mt-6 px-4 py-2 rounded-lg ${
-          isDarkMode
-            ? "bg-blue-600 hover:bg-blue-700 text-white"
-            : "bg-gray-700 hover:bg-gray-600 text-white"
-        }`}
-      >
-        {isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-      </button>
     </div>
   );
 };
