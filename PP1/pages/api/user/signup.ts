@@ -82,8 +82,8 @@ async function postHandler(
 
     // Set the avatar URL based on the uploaded file or default
     const avatarUrl = req.file
-      ? `/${req.file.path}`
-      : "public/avatar/default.jpg";
+      ? `${req.file.path}`
+      : "avatar/default.jpg";
 
     // Convert phoneNum to a number, or use undefined if not provided
     const parsedPhoneNum = phoneNum

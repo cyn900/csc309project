@@ -1,16 +1,56 @@
 import React, { useState } from "react";
 import { useTheme } from "../../contexts/ThemeContext"; // Import the useTheme hook
+import { useRouter } from 'next/router';
+import axios from 'axios';
 
 const Login: React.FC = () => {
+  const router = useRouter();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
 
   const { isDarkMode, toggleTheme } = useTheme(); // Access the current theme and toggle function
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log({ email, password });
+    try {
+      const response = await axios.post('/api/user/login', { email, password });
+      console.log('Login response:', response.data);
+      
+      if (response.data.accessToken) {
+        const token = response.data.accessToken;
+        localStorage.setItem('accessToken', token);
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+        
+        // Set default headers
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        try {
+          const userResponse = await axios.get('/api/user/profile', {
+            headers: { 
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          console.log('User data after login:', userResponse.data);
+          
+          // Create a custom event with the user data
+          const event = new CustomEvent('userLoggedIn', { 
+            detail: userResponse.data.user // Access the user object from the response
+          });
+          window.dispatchEvent(event);
+          
+          // Navigate after a short delay to ensure event is processed
+          setTimeout(() => {
+            router.push('/blogs');
+          }, 100);
+          
+        } catch (error) {
+          console.error('Profile fetch failed:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Login failed:', error);
+    }
   };
 
   return (

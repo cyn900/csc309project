@@ -1,13 +1,17 @@
-import "@/styles/globals.css";
-import type { AppProps } from "next/app";
-import { ThemeProvider } from "../contexts/ThemeContext";
-import Navbar from "./components/Navbar";
+import type { AppProps } from 'next/app';
+import { ThemeProvider } from '../contexts/ThemeContext';
+import Navbar from './components/Navbar';
+import '../styles/globals.css';
 
-export default function App({ Component, pageProps }: AppProps) {
+function MyApp({ Component, pageProps }: AppProps) {
   return (
     <ThemeProvider>
-      <Navbar />
-      <Component {...pageProps} />;
+      <div className="min-h-screen">
+        <Navbar />
+        <Component {...pageProps} />
+      </div>
     </ThemeProvider>
   );
 }
+
+export default MyApp;
