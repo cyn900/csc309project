@@ -1,16 +1,33 @@
 import React, { useState } from "react";
 import { useTheme } from "../../contexts/ThemeContext"; // Import the useTheme hook
+import { useRouter } from 'next/router';
+import axios from 'axios';
 
 const Login: React.FC = () => {
+  const router = useRouter();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
 
   const { isDarkMode, toggleTheme } = useTheme(); // Access the current theme and toggle function
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log({ email, password });
+    try {
+      const response = await axios.post('/api/user/login', { email, password });
+      
+      // Store tokens in localStorage
+      localStorage.setItem('accessToken', response.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+      
+      // Set authorization header for future requests
+      axios.defaults.headers.common['Authorization'] = response.data.accessToken;
+      
+      // Redirect to blogs page
+      router.push('/blogs');
+    } catch (error) {
+      console.error('Login failed:', error);
+      // Handle error (you might want to show an error message to the user)
+    }
   };
 
   return (
