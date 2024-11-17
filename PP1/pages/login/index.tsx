@@ -14,22 +14,42 @@ const Login: React.FC = () => {
     e.preventDefault();
     try {
       const response = await axios.post('/api/user/login', { email, password });
+      console.log('Login response:', response.data);
       
-      // Store tokens in localStorage
-      localStorage.setItem('accessToken', response.data.accessToken);
-      localStorage.setItem('refreshToken', response.data.refreshToken);
-      
-      // Set authorization header for future requests
-      axios.defaults.headers.common['Authorization'] = response.data.accessToken;
-      
-      // Dispatch custom event to notify Navbar
-      window.dispatchEvent(new Event('login'));
-      
-      // Redirect to home or dashboard
-      router.push('/');
+      if (response.data.accessToken) {
+        const token = response.data.accessToken;
+        localStorage.setItem('accessToken', token);
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+        
+        // Set default headers
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        try {
+          const userResponse = await axios.get('/api/user/profile', {
+            headers: { 
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          console.log('User data after login:', userResponse.data);
+          
+          // Create a custom event with the user data
+          const event = new CustomEvent('userLoggedIn', { 
+            detail: userResponse.data.user // Access the user object from the response
+          });
+          window.dispatchEvent(event);
+          
+          // Navigate after a short delay to ensure event is processed
+          setTimeout(() => {
+            router.push('/blogs');
+          }, 100);
+          
+        } catch (error) {
+          console.error('Profile fetch failed:', error);
+        }
+      }
     } catch (error) {
       console.error('Login failed:', error);
-      // Handle error (you might want to show an error message to the user)
     }
   };
 

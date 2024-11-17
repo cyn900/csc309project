@@ -7,6 +7,7 @@ interface User {
   firstName: string;
   lastName: string;
   email: string;
+  avatar?: string;
 }
 
 const Navbar: React.FC = () => {
@@ -16,8 +17,15 @@ const Navbar: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const getInitials = (firstName?: string, lastName?: string) => {
+    if (!firstName || !lastName) return '?';
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  };
+
   const checkAuth = async () => {
     const token = localStorage.getItem('accessToken');
+    console.log('Checking auth with token:', token);
+
     if (!token) {
       setUser(null);
       setIsLoading(false);
@@ -26,9 +34,19 @@ const Navbar: React.FC = () => {
 
     try {
       const response = await axios.get('/api/user/profile', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`
+        }
       });
-      setUser(response.data);
+      
+      console.log('Profile response data:', response.data);
+      
+      if (response.data.user) {
+        setUser(response.data.user);
+      } else {
+        console.error('Invalid user data in response');
+        setUser(null);
+      }
     } catch (error) {
       console.error('Failed to fetch user:', error);
       localStorage.removeItem('accessToken');
@@ -38,29 +56,27 @@ const Navbar: React.FC = () => {
     }
   };
 
-  // Check auth on mount and when localStorage changes
   useEffect(() => {
-    checkAuth();
+    const handleUserLogin = (event: CustomEvent) => {
+      console.log('Login event received with data:', event.detail);
+      if (event.detail) {
+        setUser(event.detail);
+      }
+      checkAuth();
+    };
 
-    // Add event listener for storage changes
-    window.addEventListener('storage', checkAuth);
-    
-    // Custom event listener for login
-    window.addEventListener('login', checkAuth);
+    const checkAuthStatus = async () => {
+      await checkAuth();
+    };
+
+    checkAuthStatus();
+
+    window.addEventListener('userLoggedIn', handleUserLogin as EventListener);
 
     return () => {
-      window.removeEventListener('storage', checkAuth);
-      window.removeEventListener('login', checkAuth);
+      window.removeEventListener('userLoggedIn', handleUserLogin as EventListener);
     };
   }, []);
-
-  // Add this to recheck auth when token changes
-  useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token && !user) {
-      checkAuth();
-    }
-  }, [user]);
 
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
@@ -68,14 +84,12 @@ const Navbar: React.FC = () => {
     setUser(null);
     setIsProfileOpen(false);
     
-    // Dispatch logout event
-    const logoutEvent = new Event('userLogin');
-    window.dispatchEvent(logoutEvent);
+    const event = new CustomEvent('userLoggedIn', { detail: null });
+    window.dispatchEvent(event);
     
     window.location.href = '/login';
   };
 
-  // User profile/login section
   const renderAuthSection = () => {
     if (isLoading) {
       return (
@@ -83,7 +97,7 @@ const Navbar: React.FC = () => {
       );
     }
 
-    if (user) {
+    if (user && user.firstName && user.lastName) {
       return (
         <div className="relative">
           <button
@@ -92,10 +106,20 @@ const Navbar: React.FC = () => {
               isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-200"
             }`}
           >
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+            {user.avatar ? (
+              <img
+                src={`/${user.avatar}`}
+                alt={`${user.firstName}'s avatar`}
+                className="w-8 h-8 rounded-full object-cover border-2 border-blue-500"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium border-2 border-blue-400">
+                {getInitials(user.firstName, user.lastName)}
+              </div>
+            )}
+            <span className="hidden sm:block">
               {user.firstName}
-            </div>
-            <span className="hidden sm:block">{user.firstName}</span>
+            </span>
           </button>
 
           {isProfileOpen && (
@@ -104,17 +128,40 @@ const Navbar: React.FC = () => {
                 isDarkMode ? "bg-gray-700" : "bg-white"
               }`}
             >
+              <div className={`px-4 py-2 border-b ${isDarkMode ? "border-gray-600" : "border-gray-200"}`}>
+                <div className="flex items-center space-x-3 mb-2">
+                  {user.avatar ? (
+                    <img
+                      src={`/${user.avatar}`}
+                      alt={`${user.firstName}'s avatar`}
+                      className="w-10 h-10 rounded-full object-cover border-2 border-blue-500"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium border-2 border-blue-400">
+                      {getInitials(user.firstName, user.lastName)}
+                    </div>
+                  )}
+                  <div>
+                    <p className={`text-sm font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                      {`${user.firstName} ${user.lastName}`}
+                    </p>
+                    <p className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"} truncate`}>
+                      {user.email}
+                    </p>
+                  </div>
+                </div>
+              </div>
               <Link href="/profile">
                 <button className={`block px-4 py-2 text-sm w-full text-left ${
-                  isDarkMode ? "hover:bg-gray-600" : "hover:bg-gray-100"
+                  isDarkMode ? "text-white hover:bg-gray-600" : "text-gray-700 hover:bg-gray-100"
                 }`}>
-                  Profile
+                  Profile Settings
                 </button>
               </Link>
               <button
                 onClick={handleLogout}
                 className={`block px-4 py-2 text-sm w-full text-left ${
-                  isDarkMode ? "hover:bg-gray-600 text-red-400" : "hover:bg-gray-100 text-red-600"
+                  isDarkMode ? "text-red-400 hover:bg-gray-600" : "text-red-600 hover:bg-gray-100"
                 }`}
               >
                 Logout
@@ -139,7 +186,6 @@ const Navbar: React.FC = () => {
       <div className="flex justify-between items-center">
         <div className="text-xl">Scriptorium</div>
 
-        {/* Hamburger icon for mobile */}
         <div className="sm:hidden">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -151,7 +197,6 @@ const Navbar: React.FC = () => {
           </button>
         </div>
 
-        {/* Desktop Navigation */}
         <div className="hidden sm:flex items-center space-x-4">
           <Link href="/blogs">
             <button className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600">
@@ -186,7 +231,6 @@ const Navbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {isMenuOpen && (
         <div className={`sm:hidden flex flex-col space-y-4 mt-4 p-4 rounded-lg ${
           isDarkMode ? "bg-gray-800 text-white" : "bg-white text-black"
