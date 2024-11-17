@@ -50,17 +50,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ message: "Invalid or missing blog ID" });
   }
 
-  // Verify blog exists
+  // Verify blog exists - include user information
   const blog = await prisma.blog.findUnique({
     where: { bID: parseInt(bID, 10) },
+    include: {
+      user: {
+        select: {
+          uID: true
+        }
+      }
+    }
   });
 
   if (!blog) {
     return res.status(404).json({ message: "Blog post not found" });
   }
 
-  // Check permissions
-  if (blog.uID !== user.uID) {
+  // Check permissions - use blog.user.uID instead of blog.uID
+  if (blog.user.uID !== user.uID) {
+
     return res.status(403).json({ message: "You do not have permission to edit this blog post" });
   }
 
