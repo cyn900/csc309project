@@ -92,7 +92,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const startIndex = (pageNum - 1) * pageSizeNum;
     const paginatedBlogs = fullyMatchedBlogs.slice(startIndex, startIndex + pageSizeNum);
 
-    res.status(200).json(paginatedBlogs);
+    // Return both blogs and pagination metadata
+    res.status(200).json({
+      blogs: paginatedBlogs,
+      pagination: {
+        currentPage: pageNum,
+        pageSize: pageSizeNum,
+        totalItems: fullyMatchedBlogs.length,
+        totalPages: Math.ceil(fullyMatchedBlogs.length / pageSizeNum)
+      }
+    });
   } catch (error) {
     console.error("Search query failed:", error);
     res.status(500).json({ message: "Internal server error while executing search" });
