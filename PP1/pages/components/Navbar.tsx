@@ -108,7 +108,7 @@ const Navbar: React.FC = () => {
           >
             {user.avatar ? (
               <img
-                src={`/${user.avatar}`}
+                src={user.avatar.replace('public/', '')}
                 alt={`${user.firstName}'s avatar`}
                 className="w-8 h-8 rounded-full object-cover border-2 border-blue-500"
               />
@@ -132,7 +132,7 @@ const Navbar: React.FC = () => {
                 <div className="flex items-center space-x-3 mb-2">
                   {user.avatar ? (
                     <img
-                      src={`/${user.avatar}`}
+                      src={user.avatar.replace('public/', '')}
                       alt={`${user.firstName}'s avatar`}
                       className="w-10 h-10 rounded-full object-cover border-2 border-blue-500"
                     />
