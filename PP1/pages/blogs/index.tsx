@@ -15,6 +15,8 @@ interface Blog {
     downvoters: number;
     comments: number;
   };
+  hasUpvoted?: boolean;
+  hasDownvoted?: boolean;
 }
 
 interface Tag {
@@ -143,6 +145,29 @@ const BlogsPage = () => {
       return;
     }
     router.push('/blogs/create');
+  };
+
+  const handleVote = async (blogId: number, voteType: 'upvote' | 'downvote') => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      alert('Please log in to vote');
+      return;
+    }
+
+    try {
+      const response = await axios.post('/api/blog/vote', 
+        { bID: blogId, voteType },
+        { headers: { Authorization: token } }
+      );
+
+      // Update the blogs state with new vote counts
+      setBlogs(prevBlogs => prevBlogs.map(blog => 
+        blog.bID === blogId ? { ...blog, _count: response.data.blog._count } : blog
+      ));
+    } catch (error) {
+      console.error('Failed to vote:', error);
+      alert('Failed to register vote');
+    }
   };
 
   // Filter tags based on search
@@ -358,8 +383,18 @@ const BlogsPage = () => {
                 By {blog.user.firstName} {blog.user.lastName}
               </span>
               <div className="mt-2 space-x-4">
-                <span>👍 {blog._count.upvoters}</span>
-                <span>👎 {blog._count.downvoters}</span>
+                <button 
+                  onClick={() => handleVote(blog.bID, 'upvote')}
+                  className="hover:opacity-75"
+                >
+                  👍 {blog._count.upvoters}
+                </button>
+                <button 
+                  onClick={() => handleVote(blog.bID, 'downvote')}
+                  className="hover:opacity-75"
+                >
+                  👎 {blog._count.downvoters}
+                </button>
                 <span>💬 {blog._count.comments}</span>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">

@@ -106,6 +106,7 @@ export default async function handler(
           select: {
             upvoters: true,
             downvoters: true,
+            comments: true,
           },
         },
       },
