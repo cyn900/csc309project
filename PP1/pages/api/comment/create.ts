@@ -83,6 +83,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           user: {
             connect: {
               uID: user.uID,
+              firstName: user.firstName,
+              lastName: user.lastName,
             },
           },
           ...(pID && {

@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import axios from 'axios';
 import { useTheme } from "@/contexts/ThemeContext";
 import { FaArrowLeft } from 'react-icons/fa';
+import Comment from '../components/Comment';
 
 interface Comment {
   cID: number;
@@ -19,6 +20,7 @@ interface Comment {
   };
   hasUpvoted?: boolean;
   hasDownvoted?: boolean;
+  subComments?: Comment[];
 }
 
 interface Blog {
@@ -75,6 +77,13 @@ const BlogDetailPage = () => {
   const [totalComments, setTotalComments] = useState(0);
   const [hasUpvoted, setHasUpvoted] = useState(false);
   const [hasDownvoted, setHasDownvoted] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
+  const [subCommentPages, setSubCommentPages] = useState<Record<number, number>>({});
+  const COMMENTS_PER_PAGE = 5;
+  const [hasMore, setHasMore] = useState(true);
 
   const handleVote = async (type: 'upvote' | 'downvote') => {
     if (!blog) return;
@@ -134,24 +143,218 @@ const BlogDetailPage = () => {
         }
       );
 
+      setComments(prevComments => 
+        prevComments.map(comment => {
+          if (comment.cID === commentId) {
+            return updateCommentVote(comment, voteType, response.data.comment._count);
+          }
+          if (comment.subComments) {
+            return {
+              ...comment,
+              subComments: comment.subComments.map(subComment => 
+                subComment.cID === commentId 
+                  ? updateCommentVote(subComment, voteType, response.data.comment._count)
+                  : subComment
+              )
+            };
+          }
+          return comment;
+        })
+      );
+    } catch (error: any) {
+      console.error('Error voting on comment:', error);
+      alert(error.response?.data?.message || 'Failed to vote on comment');
+    }
+  };
+
+  const updateCommentVote = (
+    comment: Comment, 
+    voteType: 'upvote' | 'downvote', 
+    newCounts: { upvoters: number; downvoters: number }
+  ) => ({
+    ...comment,
+    _count: {
+      ...comment._count,
+      upvoters: newCounts.upvoters,
+      downvoters: newCounts.downvoters
+    },
+    hasUpvoted: voteType === 'upvote' ? !comment.hasUpvoted : false,
+    hasDownvoted: voteType === 'downvote' ? !comment.hasDownvoted : false
+  });
+
+  const handleCommentSubmit = async (parentCommentId: number | null = null, content: string) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      alert('Please log in to comment');
+      return;
+    }
+
+    if (!content.trim()) {
+      alert('Please enter a comment');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await axios.post(
+        '/api/comment/create',
+        {
+          bID: blog?.bID,
+          content: content,
+          pID: parentCommentId
+        },
+        {
+          headers: { Authorization: token }
+        }
+      );
+
+      const newComment: Comment = {
+        cID: response.data.cID,
+        content: response.data.content,
+        createdAt: response.data.createdAt,
+        user: {
+          firstName: response.data.user.firstName,
+          lastName: response.data.user.lastName
+        },
+        _count: {
+          upvoters: 0,
+          downvoters: 0,
+          subComments: 0
+        },
+        hasUpvoted: false,
+        hasDownvoted: false,
+        subComments: []
+      };
+
+      const updateCommentsRecursively = (comments: Comment[]): Comment[] => {
+        return comments.map(comment => {
+          if (comment.cID === parentCommentId) {
+            return {
+              ...comment,
+              subComments: comment.subComments 
+                ? [newComment, ...comment.subComments]
+                : [newComment],
+              _count: {
+                ...comment._count,
+                subComments: comment._count.subComments + 1
+              }
+            };
+          }
+          if (comment.subComments && comment.subComments.length > 0) {
+            return {
+              ...comment,
+              subComments: updateCommentsRecursively(comment.subComments)
+            };
+          }
+          return comment;
+        });
+      };
+
+      if (!parentCommentId) {
+        setNewComment('');
+        setComments(prevComments => [newComment, ...prevComments]);
+      } else {
+        setComments(prevComments => updateCommentsRecursively(prevComments));
+      }
+      
+      setTotalComments(prev => prev + 1);
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        alert(error.response.data.message);
+      } else if (error.message) {
+        alert(error.message);
+      } else {
+        alert('Failed to post comment');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleExpandComment = async (commentId: number) => {
+    try {
+      const response = await axios.get(`/api/comment?cID=${commentId}&page=1&pageSize=${COMMENTS_PER_PAGE}`);
+
       setComments(prevComments => prevComments.map(comment => {
         if (comment.cID === commentId) {
           return {
             ...comment,
-            _count: {
-              ...comment._count,
-              upvoters: response.data.comment._count.upvoters,
-              downvoters: response.data.comment._count.downvoters
-            },
-            hasUpvoted: voteType === 'upvote' ? !comment.hasUpvoted : false,
-            hasDownvoted: voteType === 'downvote' ? !comment.hasDownvoted : false
+            subComments: response.data
+          };
+        }
+        if (comment.subComments) {
+          return {
+            ...comment,
+            subComments: comment.subComments.map(subComment => 
+              subComment.cID === commentId
+                ? { ...subComment, subComments: response.data }
+                : subComment
+            )
           };
         }
         return comment;
       }));
-    } catch (error: any) {
-      console.error('Error voting on comment:', error);
-      alert(error.response?.data?.message || 'Failed to vote on comment');
+
+      setSubCommentPages({ ...subCommentPages, [commentId]: 1 });
+      const newExpanded = new Set(expandedComments);
+      newExpanded.add(commentId);
+      setExpandedComments(newExpanded);
+    } catch (error) {
+      console.error('Error fetching sub-comments:', error);
+      alert('Failed to load replies');
+    }
+  };
+
+  const loadMoreSubComments = async (commentId: number) => {
+    try {
+      const nextPage = (subCommentPages[commentId] || 1) + 1;
+      const token = localStorage.getItem('accessToken');
+      const headers = token ? { Authorization: token } : {};
+
+      const response = await axios.get(
+        `/api/comment?cID=${commentId}&page=${nextPage}&pageSize=${COMMENTS_PER_PAGE}`,
+        { headers }
+      );
+
+      setComments(prevComments => prevComments.map(comment => {
+        if (comment.cID === commentId) {
+          return {
+            ...comment,
+            subComments: [
+              ...(comment.subComments || []),
+              ...response.data
+            ]
+          };
+        }
+        return comment;
+      }));
+
+      setSubCommentPages({ ...subCommentPages, [commentId]: nextPage });
+    } catch (error) {
+      console.error('Error loading more sub-comments:', error);
+      alert('Failed to load more replies');
+    }
+  };
+
+  const loadMoreComments = async () => {
+    if (!blog || !hasMore) return;
+    
+    try {
+      const nextPage = currentPage + 1;
+      const response = await axios.get(
+        `/api/blog?bID=${blog.bID}&method=${commentSort}&page=${nextPage}&pageSize=${COMMENTS_PER_PAGE}`
+      );
+
+      if (response.data.paginatedComments.length === 0) {
+        setHasMore(false);
+        return;
+      }
+
+      setComments(prev => [...prev, ...response.data.paginatedComments]);
+      setCurrentPage(nextPage);
+    } catch (error) {
+      console.error('Error loading more comments:', error);
+      alert('Failed to load more comments');
     }
   };
 
@@ -336,78 +539,64 @@ const BlogDetailPage = () => {
             </select>
           </div>
 
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <div 
-                key={comment.cID}
-                className={`p-4 rounded-lg ${
-                  isDarkMode ? "bg-gray-800" : "bg-gray-100"
+          <div className={`mb-6 p-4 rounded-lg ${
+            isDarkMode ? "bg-gray-800" : "bg-gray-100"
+          }`}>
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Write a comment..."
+              className={`w-full p-3 rounded-lg ${
+                isDarkMode 
+                  ? "bg-gray-700 text-white placeholder-gray-400" 
+                  : "bg-white text-black placeholder-gray-500"
+              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              rows={3}
+            />
+            <div className="mt-2 flex justify-end">
+              <button
+                onClick={() => handleCommentSubmit(null, newComment)}
+                disabled={isSubmitting || !newComment.trim()}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  isSubmitting || !newComment.trim()
+                    ? 'opacity-50 cursor-not-allowed'
+                    : isDarkMode 
+                      ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                      : "bg-blue-500 hover:bg-blue-600 text-white"
                 }`}
               >
-                <p className="mb-2">{comment.content}</p>
-                <div className="text-sm text-gray-500">
-                  By {comment.user.firstName} {comment.user.lastName}
-                </div>
-                <div className="flex items-center space-x-4 mt-2">
-                  <button 
-                    onClick={() => {
-                      const token = localStorage.getItem('accessToken');
-                      if (!token) {
-                        alert('Please log in to vote');
-                        return;
-                      }
-                      handleCommentVote(comment.cID, 'upvote');
-                    }}
-                    className={`group flex items-center space-x-1 transition-all duration-200 
-                      ${comment.hasUpvoted 
-                        ? 'text-blue-500 font-bold' 
-                        : isDarkMode 
-                          ? 'text-gray-300 hover:text-blue-400' 
-                          : 'text-gray-700 hover:text-blue-500'
-                      }`}
-                  >
-                    <span className={`transform transition-transform ${
-                      comment.hasUpvoted ? 'scale-110' : 'group-hover:scale-110'
-                    }`}>
-                      👍
-                    </span>
-                    <span className={`ml-1 ${comment.hasUpvoted ? 'font-bold' : ''}`}>
-                      {comment._count.upvoters}
-                    </span>
-                  </button>
-                  <button 
-                    onClick={() => {
-                      const token = localStorage.getItem('accessToken');
-                      if (!token) {
-                        alert('Please log in to vote');
-                        return;
-                      }
-                      handleCommentVote(comment.cID, 'downvote');
-                    }}
-                    className={`group flex items-center space-x-1 transition-all duration-200 
-                      ${comment.hasDownvoted 
-                        ? 'text-red-500 font-bold' 
-                        : isDarkMode 
-                          ? 'text-gray-300 hover:text-red-400' 
-                          : 'text-gray-700 hover:text-red-500'
-                      }`}
-                  >
-                    <span className={`transform transition-transform ${
-                      comment.hasDownvoted ? 'scale-110' : 'group-hover:scale-110'
-                    }`}>
-                      👎
-                    </span>
-                    <span className={`ml-1 ${comment.hasDownvoted ? 'font-bold' : ''}`}>
-                      {comment._count.downvoters}
-                    </span>
-                  </button>
-                  <span className="flex items-center space-x-1 text-gray-500">
-                    <span>💬</span>
-                    <span>{comment._count.subComments}</span>
-                  </span>
-                </div>
-              </div>
+                {isSubmitting ? 'Posting...' : 'Post Comment'}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {comments.map((comment) => (
+              <Comment
+                key={comment.cID}
+                comment={comment}
+                onVote={handleCommentVote}
+                onReply={handleCommentSubmit}
+                onLoadSubComments={handleExpandComment}
+                onLoadMore={loadMoreSubComments}
+                isExpanded={expandedComments.has(comment.cID)}
+                hasMoreComments={comment._count.subComments > (COMMENTS_PER_PAGE * (subCommentPages[comment.cID] || 1))}
+                isDarkMode={isDarkMode}
+              />
             ))}
+
+            {hasMore && comments.length > 0 && (
+              <button
+                onClick={loadMoreComments}
+                className={`w-full text-center py-2 rounded-lg mt-4 ${
+                  isDarkMode 
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-300" 
+                    : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                }`}
+              >
+                Load More Comments
+              </button>
+            )}
           </div>
         </section>
       </div>
