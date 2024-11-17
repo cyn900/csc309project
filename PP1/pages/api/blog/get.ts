@@ -11,9 +11,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { bID } = req.query;
   const token = req.headers.authorization;
 
-  if (!token) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
+  // if (!token) {
+  //   return res.status(401).json({ message: "Unauthorized" });
+  // }
 
   try {
     const blog = await prisma.blog.findUnique({
@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (!blog) {
-      return res.status(404).json({ message: "Blog not found" });
+      return res.status(404).json({ message: "Blog not found in get ts" });
     }
 
     res.status(200).json({ blog });

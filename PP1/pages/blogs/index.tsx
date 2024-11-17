@@ -21,8 +21,8 @@ interface Blog {
     downvoters: number;
     comments: number;
   };
-  hasUpvoted?: boolean;
-  hasDownvoted?: boolean;
+  hasUpvoted: boolean;
+  hasDownvoted: boolean;
 }
 
 interface Tag {
@@ -190,10 +190,18 @@ const BlogsPage = () => {
         { headers: { Authorization: token } }
       );
 
-      // Update the blogs state with new vote counts
-      setBlogs(prevBlogs => prevBlogs.map(blog => 
-        blog.bID === blogId ? { ...blog, _count: response.data.blog._count } : blog
-      ));
+      // Update the blogs state with new vote counts and vote status
+      setBlogs(prevBlogs => prevBlogs.map(blog => {
+        if (blog.bID === blogId) {
+          return {
+            ...blog,
+            _count: response.data.blog._count,
+            hasUpvoted: voteType === 'upvote' ? !blog.hasUpvoted : false,
+            hasDownvoted: voteType === 'downvote' ? !blog.hasDownvoted : false
+          };
+        }
+        return blog;
+      }));
     } catch (error) {
       console.error('Failed to vote:', error);
       alert('Failed to register vote');
@@ -278,6 +286,11 @@ const BlogsPage = () => {
   const filteredTags = availableTags
     .filter(tag => tag.value.toLowerCase().includes(tagSearch.toLowerCase()))
     .slice(0, 10); // Only take first 10 tags
+
+  // Add this function to handle blog click
+  const handleBlogClick = (blogId: number) => {
+    router.push(`/blogs/${blogId}`);
+  };
 
   return (
     <div className={`min-h-screen p-8 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"}`}>
@@ -529,9 +542,12 @@ const BlogsPage = () => {
                 isDarkMode ? "bg-gray-800" : "bg-gray-100"
               } flex flex-col justify-between hover:shadow-xl transition-shadow duration-200 overflow-hidden relative group`}
             >
-              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
                 <button
-                  onClick={() => handleEdit(blog)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent triggering the blog click
+                    handleEdit(blog);
+                  }}
                   className={`p-2 rounded-full hover:bg-blue-500 hover:text-white ${
                     isDarkMode ? "text-gray-400" : "text-gray-600"
                   }`}
@@ -540,7 +556,10 @@ const BlogsPage = () => {
                   <FaEdit size={16} />
                 </button>
                 <button
-                  onClick={() => handleDelete(blog.bID)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent triggering the blog click
+                    handleDelete(blog.bID);
+                  }}
                   className={`p-2 rounded-full hover:bg-red-500 hover:text-white ${
                     isDarkMode ? "text-gray-400" : "text-gray-600"
                   }`}
@@ -550,65 +569,106 @@ const BlogsPage = () => {
                 </button>
               </div>
 
-              <div className="text-lg font-semibold mb-2">
-                {blog.title}
-              </div>
+              <div 
+                onClick={() => handleBlogClick(blog.bID)}
+                className="flex-1 cursor-pointer"
+              >
+                <div className="text-lg font-semibold mb-2">
+                  {blog.title}
+                </div>
 
-              <div className="flex-1">
-                <p className={`mb-4 font-medium break-words whitespace-normal overflow-hidden ${
-                  isDarkMode ? "text-gray-300" : "text-gray-600"
-                }`}
-                style={{
-                  display: '-webkit-box',
-                  WebkitLineClamp: '3',
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden'
-                }}>
-                  {blog.description}
-                </p>
+                <div className="flex-1">
+                  <p className={`mb-4 font-medium break-words whitespace-normal overflow-hidden ${
+                    isDarkMode ? "text-gray-300" : "text-gray-600"
+                  }`}
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: '3',
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}>
+                    {blog.description}
+                  </p>
 
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {blog.tags.map((tag) => (
-                    <span 
-                      key={tag.value} 
-                      className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full"
-                    >
-                      {tag.value}
-                    </span>
-                  ))}
-                  {blog.templates.map((template) => (
-                    <span 
-                      key={template.title} 
-                      className="bg-green-500 text-white text-xs px-2 py-1 rounded-full"
-                    >
-                      {template.title}
-                    </span>
-                  ))}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {blog.tags.map((tag) => (
+                      <span 
+                        key={tag.value} 
+                        className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full"
+                      >
+                        {tag.value}
+                      </span>
+                    ))}
+                    {blog.templates.map((template) => (
+                      <span 
+                        key={template.title} 
+                        className="bg-green-500 text-white text-xs px-2 py-1 rounded-full"
+                      >
+                        {template.title}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               <div className={`border-t ${isDarkMode ? "border-gray-700" : "border-gray-200"} my-4`} />
 
-              <div className="mt-auto">
+              <div 
+                onClick={() => handleBlogClick(blog.bID)}
+                className="mt-auto cursor-pointer"
+              >
                 <div className="text-sm mb-2">
                   By {blog.user.firstName} {blog.user.lastName}
                 </div>
                 
                 <div className="flex items-center space-x-4">
                   <button 
-                    onClick={() => handleVote(blog.bID, 'upvote')}
-                    className="hover:opacity-75 flex items-center"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleVote(blog.bID, 'upvote');
+                    }}
+                    className={`group flex items-center space-x-1 transition-all duration-200 
+                      ${blog.hasUpvoted 
+                        ? 'text-blue-500 font-bold' 
+                        : isDarkMode 
+                          ? 'text-gray-300 hover:text-blue-400' 
+                          : 'text-gray-700 hover:text-blue-500'
+                      }`}
                   >
-                    👍 <span className="ml-1">{blog._count.upvoters}</span>
+                    <span className={`transform transition-transform ${
+                      blog.hasUpvoted ? 'scale-110' : 'group-hover:scale-110'
+                    }`}>
+                      👍
+                    </span>
+                    <span className={`ml-1 ${blog.hasUpvoted ? 'font-bold' : ''}`}>
+                      {blog._count.upvoters}
+                    </span>
                   </button>
                   <button 
-                    onClick={() => handleVote(blog.bID, 'downvote')}
-                    className="hover:opacity-75 flex items-center"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleVote(blog.bID, 'downvote');
+                    }}
+                    className={`group flex items-center space-x-1 transition-all duration-200 
+                      ${blog.hasDownvoted 
+                        ? 'text-red-500 font-bold' 
+                        : isDarkMode 
+                          ? 'text-gray-300 hover:text-red-400' 
+                          : 'text-gray-700 hover:text-red-500'
+                      }`}
                   >
-                    👎 <span className="ml-1">{blog._count.downvoters}</span>
+                    <span className={`transform transition-transform ${
+                      blog.hasDownvoted ? 'scale-110' : 'group-hover:scale-110'
+                    }`}>
+                      👎
+                    </span>
+                    <span className={`ml-1 ${blog.hasDownvoted ? 'font-bold' : ''}`}>
+                      {blog._count.downvoters}
+                    </span>
                   </button>
-                  <span className="flex items-center">
-                    💬 <span className="ml-1">{blog._count.comments}</span>
+                  <span className="flex items-center space-x-1 text-gray-500">
+                    <span>💬</span>
+                    <span>{blog._count.comments}</span>
                   </span>
                 </div>
               </div>
