@@ -56,8 +56,7 @@ const EditBlogPage = () => {
 
         if (userResponse.data.user.uID !== blogData.user.uID) {
           alert('You do not have permission to edit this blog');
-          console.log('User ID:', userResponse.data.user.uID);
-          console.log('Blog User ID:', blogData.user.uID);
+
           router.push('/blogs');
           return;
         }
@@ -149,66 +148,93 @@ const EditBlogPage = () => {
   if (!blog) return <div className="min-h-screen p-8">Blog not found</div>;
 
   return (
-    <div className={`min-h-screen p-8 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"}`}>
-      <form onSubmit={(e) => e.preventDefault()} className="max-w-2xl mx-auto space-y-6">
-        <h1 className="text-3xl font-bold mb-8">Edit Blog</h1>
+    <div className={`min-h-screen p-4 md:p-8 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"}`}>
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6">Edit Blog</h1>
 
-        <div className="space-y-4">
+        {error && (
+          <div className="mb-4 p-4 bg-red-500 text-white rounded-lg animate-fade-in">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">Title</label>
+            <label className="block mb-2 font-medium">
+              Title 
+              <span className="text-sm text-gray-500 ml-2">
+                ({title.length}/100 characters)
+              </span>
+            </label>
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className={`w-full px-4 py-2 rounded-md border ${
+              onChange={(e) => setTitle(e.target.value.slice(0, 100))}
+              className={`w-full p-3 rounded-lg border transition-colors duration-200 ${
                 isDarkMode 
-                  ? "bg-gray-800 border-gray-700"
-                  : "bg-white border-gray-300"
+                  ? "bg-gray-800 border-gray-700 focus:border-blue-500" 
+                  : "bg-white border-gray-300 focus:border-blue-400"
               }`}
+              placeholder="Enter your blog title..."
               required
+              maxLength={100}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Description</label>
+            <label className="block mb-2 font-medium">
+              Description
+              <span className="text-sm text-gray-500 ml-2">
+                ({description.length}/500 characters)
+              </span>
+            </label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={6}
-              className={`w-full px-4 py-2 rounded-md border ${
+              onChange={(e) => setDescription(e.target.value.slice(0, 500))}
+              className={`w-full p-3 rounded-lg border transition-colors duration-200 ${
                 isDarkMode 
-                  ? "bg-gray-800 border-gray-700"
-                  : "bg-white border-gray-300"
+                  ? "bg-gray-800 border-gray-700 focus:border-blue-500" 
+                  : "bg-white border-gray-300 focus:border-blue-400"
               }`}
+              placeholder="Write your blog description..."
+              rows={6}
               required
+              maxLength={500}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Tags</label>
+            <label className="block mb-2 font-medium">
+              Tags 
+              <span className="text-sm text-gray-500 ml-2">
+                (Press Enter to add, {10 - tags.length} remaining)
+              </span>
+            </label>
             <input
               type="text"
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagAdd}
-              placeholder="Press Enter to add tag"
-              className={`w-full px-4 py-2 rounded-md border ${
+              className={`w-full p-3 rounded-lg border transition-colors duration-200 ${
                 isDarkMode 
-                  ? "bg-gray-800 border-gray-700"
-                  : "bg-white border-gray-300"
+                  ? "bg-gray-800 border-gray-700 focus:border-blue-500" 
+                  : "bg-white border-gray-300 focus:border-blue-400"
               }`}
+              placeholder="Type a tag and press Enter..."
+              disabled={tags.length >= 10}
             />
             <div className="flex flex-wrap gap-2 mt-2">
               {tags.map((tag) => (
                 <span
                   key={tag}
-                  className="bg-blue-500 text-white px-2 py-1 rounded-full text-sm flex items-center gap-1"
+                  className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm flex items-center 
+                           transition-transform duration-200 hover:scale-105"
                 >
                   {tag}
                   <button
                     type="button"
                     onClick={() => handleTagRemove(tag)}
-                    className="hover:text-blue-200"
+                    className="ml-2 hover:text-red-200 transition-colors duration-200"
                   >
                     ×
                   </button>
@@ -218,71 +244,74 @@ const EditBlogPage = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Templates</label>
-            <input
-              type="text"
-              value={templateSearch}
-              onChange={(e) => setTemplateSearch(e.target.value)}
-              placeholder="Search templates..."
-              className={`w-full px-4 py-2 rounded-md border ${
-                isDarkMode 
-                  ? "bg-gray-800 border-gray-700"
-                  : "bg-white border-gray-300"
-              }`}
-            />
-            {availableTemplates.length > 0 && (
-              <div className={`mt-2 border rounded-md ${
-                isDarkMode ? "border-gray-700" : "border-gray-200"
-              }`}>
-                {availableTemplates.map((template) => (
-                  <div
-                    key={template.tID}
-                    onClick={() => handleTemplateToggle(template.tID)}
-                    className={`px-4 py-2 cursor-pointer flex items-center justify-between ${
-                      isDarkMode 
-                        ? "hover:bg-gray-800"
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    <span>{template.title}</span>
-                    <input
-                      type="checkbox"
-                      checked={templates.includes(template.tID)}
-                      onChange={() => handleTemplateToggle(template.tID)}
-                      className="ml-2"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+            <label className="block mb-2 font-medium">
+              Templates
+              <span className="text-sm text-gray-500 ml-2">
+                ({10 - templates.length} remaining)
+              </span>
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={templateSearch}
+                onChange={(e) => setTemplateSearch(e.target.value)}
+                className={`w-full p-3 rounded-lg border transition-colors duration-200 ${
+                  isDarkMode 
+                    ? "bg-gray-800 border-gray-700 focus:border-blue-500" 
+                    : "bg-white border-gray-300 focus:border-blue-400"
+                }`}
+                placeholder="Search templates..."
+                disabled={templates.length >= 10}
+              />
+              {templateSearch && availableTemplates.length > 0 && (
+                <div className={`absolute z-10 w-full mt-1 rounded-lg shadow-lg max-h-60 overflow-y-auto ${
+                  isDarkMode ? "bg-gray-800" : "bg-white"
+                } border ${isDarkMode ? "border-gray-700" : "border-gray-300"}`}>
+                  {availableTemplates.map((template) => (
+                    <div
+                      key={template.tID}
+                      onClick={() => handleTemplateToggle(template.tID)}
+                      className={`p-3 cursor-pointer transition-colors duration-200 ${
+                        isDarkMode 
+                          ? "hover:bg-gray-700" 
+                          : "hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{template.title}</span>
+                        <input
+                          type="checkbox"
+                          checked={templates.includes(template.tID)}
+                          onChange={() => handleTemplateToggle(template.tID)}
+                          className="ml-2"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="flex gap-4 pt-6">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className={`px-6 py-2 rounded-lg ${
-              isDarkMode
-                ? "bg-blue-600 hover:bg-blue-700"
-                : "bg-blue-500 hover:bg-blue-600"
-            } text-white`}
-          >
-            Update Blog
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push('/blogs')}
-            className={`px-6 py-2 rounded-lg ${
-              isDarkMode
-                ? "bg-gray-700 hover:bg-gray-600"
-                : "bg-gray-200 hover:bg-gray-300"
-            }`}
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
+          <div className="flex gap-4 pt-4">
+            <button
+              type="submit"
+              className="px-6 py-3 bg-blue-500 text-white rounded-lg transition-all duration-200
+                        hover:bg-blue-600 hover:scale-105"
+            >
+              Update Blog
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/blogs')}
+              className="px-6 py-3 bg-gray-500 text-white rounded-lg transition-all duration-200
+                       hover:bg-gray-600 hover:scale-105"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
