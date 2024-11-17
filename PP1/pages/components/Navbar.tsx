@@ -24,7 +24,10 @@ const Navbar: React.FC = () => {
 
   const checkAuth = async () => {
     const token = localStorage.getItem('accessToken');
+    const storedUserData = localStorage.getItem('userData');
+    
     console.log('Checking auth with token:', token);
+    console.log('Stored user data:', storedUserData);
 
     if (!token) {
       setUser(null);
@@ -32,24 +35,37 @@ const Navbar: React.FC = () => {
       return;
     }
 
+    // First try to use stored user data
+    if (storedUserData) {
+      try {
+        const userData = JSON.parse(storedUserData);
+        setUser(userData);
+        setIsLoading(false);
+      } catch (e) {
+        console.error('Failed to parse stored user data');
+      }
+    }
+
+    // Then verify with server
     try {
       const response = await axios.get('/api/user/profile', {
         headers: { 
-          'Authorization': `Bearer ${token}`
+          'Authorization': token // token already includes 'Bearer '
         }
       });
       
-      console.log('Profile response data:', response.data);
-      
       if (response.data.user) {
         setUser(response.data.user);
+        localStorage.setItem('userData', JSON.stringify(response.data.user));
       } else {
         console.error('Invalid user data in response');
         setUser(null);
+        localStorage.removeItem('userData');
       }
     } catch (error) {
       console.error('Failed to fetch user:', error);
       localStorage.removeItem('accessToken');
+      localStorage.removeItem('userData');
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -81,6 +97,7 @@ const Navbar: React.FC = () => {
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userData');
     setUser(null);
     setIsProfileOpen(false);
     

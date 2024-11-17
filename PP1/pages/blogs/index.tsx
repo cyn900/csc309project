@@ -22,6 +22,7 @@ interface Tag {
 }
 
 const BlogsPage = () => {
+  const router = useRouter();
   const { isDarkMode, toggleTheme } = useTheme();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
@@ -135,6 +136,15 @@ const BlogsPage = () => {
     }));
   };
 
+  const handleCreateClick = () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      alert('Please log in to create a blog');
+      return;
+    }
+    router.push('/blogs/create');
+  };
+
   // Filter tags based on search
   const filteredTags = availableTags
     .filter(tag => tag.value.toLowerCase().includes(tagSearch.toLowerCase()))
@@ -142,7 +152,19 @@ const BlogsPage = () => {
 
   return (
     <div className={`min-h-screen p-8 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"}`}>
-      <h1 className="text-3xl font-bold mb-6">Blogs</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Blogs</h1>
+        <button
+          onClick={handleCreateClick}
+          className={`px-4 py-2 rounded-lg ${
+            isDarkMode
+              ? "bg-blue-600 hover:bg-blue-700 text-white"
+              : "bg-blue-500 hover:bg-blue-600 text-white"
+          }`}
+        >
+          Create Blog
+        </button>
+      </div>
       
       <div className="mb-8 space-y-4">
         <div className={`border rounded-lg p-2 ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}>

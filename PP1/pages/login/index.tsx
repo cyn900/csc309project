@@ -18,11 +18,8 @@ const Login: React.FC = () => {
       
       if (response.data.accessToken) {
         const token = response.data.accessToken;
-        localStorage.setItem('accessToken', token);
+        localStorage.setItem('accessToken', `Bearer ${token}`);
         localStorage.setItem('refreshToken', response.data.refreshToken);
-        
-        // Set default headers
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
         try {
           const userResponse = await axios.get('/api/user/profile', {
@@ -33,17 +30,14 @@ const Login: React.FC = () => {
           
           console.log('User data after login:', userResponse.data);
           
-          // Create a custom event with the user data
+          localStorage.setItem('userData', JSON.stringify(userResponse.data.user));
+          
           const event = new CustomEvent('userLoggedIn', { 
-            detail: userResponse.data.user // Access the user object from the response
+            detail: userResponse.data.user
           });
           window.dispatchEvent(event);
           
-          // Navigate after a short delay to ensure event is processed
-          setTimeout(() => {
-            router.push('/blogs');
-          }, 100);
-          
+          router.push('/blogs');
         } catch (error) {
           console.error('Profile fetch failed:', error);
         }
