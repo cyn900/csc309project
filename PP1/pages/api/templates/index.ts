@@ -58,10 +58,7 @@ const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
         .status(400)
         .json({ message: "Fork must be either 'true' or 'false'." });
     }
-  } else {
-    conditions.push({ fork: false });
   }
-
   // Normalize tags to always be an array
   let normalizedTags: string[] = [];
   if (tags) {
