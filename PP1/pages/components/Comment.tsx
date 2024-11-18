@@ -28,6 +28,9 @@ interface CommentProps {
   isExpanded: boolean;
   hasMoreComments: boolean;
   isDarkMode: boolean;
+  currentSubPage: number;
+  maxLevel: number;
+  onSubPageChange: (commentId: number, newPage: number) => void;
 }
 
 const Comment = ({
@@ -39,7 +42,10 @@ const Comment = ({
   onLoadMore,
   isExpanded,
   hasMoreComments,
-  isDarkMode
+  isDarkMode,
+  currentSubPage,
+  onSubPageChange,
+  maxLevel
 }: CommentProps) => {
   const router = useRouter();
   const [isReplying, setIsReplying] = useState(false);
@@ -82,7 +88,7 @@ const Comment = ({
 
   const handleLoadSubComments = async () => {
     try {
-      if (level >= 2) {
+      if (level >= maxLevel) {
         router.push(`/comments/${comment.cID}`);
         return;
       }
@@ -97,6 +103,8 @@ const Comment = ({
     }
   };
 
+  const shouldShowSubComments = level < maxLevel && isSubCommentsVisible && comment.subComments;
+
   return (
     <div className={`${level > 0 ? 'ml-4 mt-4 pl-4 border-l-2 border-gray-300' : ''}`}>
       <div className={`p-4 rounded-lg ${
@@ -104,7 +112,7 @@ const Comment = ({
       }`}>
         <p className="mb-2">{comment.content}</p>
         <div className="text-sm text-gray-500">
-          By {comment.user.firstName} {comment.user.lastName}
+          By{comment?.user?.firstName} {comment?.user?.lastName}
         </div>
 
         <div className="flex items-center space-x-4 mt-2">
@@ -218,7 +226,7 @@ const Comment = ({
           </div>
         )}
 
-        {isSubCommentsVisible && comment.subComments && level < 2 && (
+        {shouldShowSubComments && comment.subComments && (
           <div className="space-y-4 mt-4">
             {comment.subComments.map((subComment) => (
               <Comment
@@ -229,9 +237,12 @@ const Comment = ({
                 onReply={onReply}
                 onLoadSubComments={onLoadSubComments}
                 onLoadMore={onLoadMore}
-                isExpanded={isExpanded}
+                isExpanded={false}
                 hasMoreComments={subComment._count.subComments > 0}
                 isDarkMode={isDarkMode}
+                currentSubPage={currentSubPage}
+                onSubPageChange={onSubPageChange}
+                maxLevel={maxLevel}
               />
             ))}
             {hasMoreComments && (
