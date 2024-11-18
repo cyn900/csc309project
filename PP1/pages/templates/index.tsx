@@ -18,6 +18,7 @@ interface Template {
 }
 
 interface Tag {
+  id: number;
   value: string;
 }
 
@@ -38,6 +39,8 @@ const CodeTemplateSearch: React.FC = () => {
     pageSize: 5,
     totalPages: 1,
   });
+  const [currentTagPage, setCurrentTagPage] = useState(1);
+  const tagsPerPage = 10; // Tags per page
   const [showFilters, setShowFilters] = useState(true);
   const [tagSearch, setTagSearch] = useState("");
   const [searchParams, setSearchParams] = useState({
@@ -47,7 +50,20 @@ const CodeTemplateSearch: React.FC = () => {
     forkedOnly: false,
   });
 
-  // Fetch templates based on search parameters and current page
+  // Fetch all available tags
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await axios.get("/api/tags");
+        setAvailableTags(response.data);
+      } catch (error) {
+        console.error("Failed to fetch tags:", error);
+      }
+    };
+    fetchTags();
+  }, []);
+
+  // Fetch templates based on search parameters and pagination
   useEffect(() => {
     const fetchTemplates = async () => {
       const queryParams = new URLSearchParams({
@@ -96,6 +112,30 @@ const CodeTemplateSearch: React.FC = () => {
         : [...prev.tags, tagValue],
     }));
     setMetaData((prev) => ({ ...prev, currentPage: 1 })); // Reset to page 1 when filters change
+  };
+
+  // Filter available tags based on `tagSearch`
+  const filteredTags = availableTags.filter((tag) =>
+    tag.value.toLowerCase().includes(tagSearch.toLowerCase())
+  );
+
+  // Paginate tags
+  const totalTagPages = Math.ceil(filteredTags.length / tagsPerPage);
+  const currentTags = filteredTags.slice(
+    (currentTagPage - 1) * tagsPerPage,
+    currentTagPage * tagsPerPage
+  );
+
+  const handlePreviousTagPage = () => {
+    if (currentTagPage > 1) {
+      setCurrentTagPage((prev) => prev - 1);
+    }
+  };
+
+  const handleNextTagPage = () => {
+    if (currentTagPage < totalTagPages) {
+      setCurrentTagPage((prev) => prev + 1);
+    }
   };
 
   return (
@@ -180,6 +220,75 @@ const CodeTemplateSearch: React.FC = () => {
             Show Only Forked Templates
           </label>
         </div>
+
+        {/* Tag Filtering */}
+        <div className="border rounded-lg p-4">
+          <h2 className="text-lg font-semibold mb-3">Filter by Tags:</h2>
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Search tags..."
+              value={tagSearch}
+              onChange={(e) => {
+                setTagSearch(e.target.value);
+                setCurrentTagPage(1); // Reset to page 1 on search
+              }}
+              className={`w-full px-4 py-2 rounded-md border ${
+                isDarkMode
+                  ? "bg-gray-700 text-white border-gray-600"
+                  : "bg-gray-100 text-black border-gray-300"
+              }`}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {currentTags.map((tag) => (
+              <button
+                key={tag.id}
+                onClick={() => handleTagToggle(tag.value)}
+                className={`px-3 py-1 rounded-full text-sm ${
+                  searchParams.tags.includes(tag.value)
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-200 text-black hover:bg-gray-300"
+                }`}
+              >
+                {tag.value}
+              </button>
+            ))}
+          </div>
+
+          {/* Pagination Controls for Tags */}
+          <div className="flex justify-center items-center mt-4 gap-4">
+            <button
+              onClick={handlePreviousTagPage}
+              disabled={currentTagPage === 1}
+              className={`px-4 py-2 rounded-md ${
+                currentTagPage === 1
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : isDarkMode
+                  ? "bg-gray-700 text-white hover:bg-gray-600"
+                  : "bg-gray-200 text-black hover:bg-gray-300"
+              }`}
+            >
+              Previous
+            </button>
+            <span className="text-sm">
+              Page {currentTagPage} of {totalTagPages}
+            </span>
+            <button
+              onClick={handleNextTagPage}
+              disabled={currentTagPage === totalTagPages}
+              className={`px-4 py-2 rounded-md ${
+                currentTagPage === totalTagPages
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : isDarkMode
+                  ? "bg-gray-700 text-white hover:bg-gray-600"
+                  : "bg-gray-200 text-black hover:bg-gray-300"
+              }`}
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Template Results */}
@@ -218,7 +327,7 @@ const CodeTemplateSearch: React.FC = () => {
               ))}
             </div>
 
-            {/* Pagination Controls */}
+            {/* Pagination Controls for Templates */}
             <div className="flex justify-center items-center mt-6 gap-4">
               <button
                 onClick={handlePreviousTemplatePage}
@@ -226,9 +335,7 @@ const CodeTemplateSearch: React.FC = () => {
                 className={`px-4 py-2 rounded-md ${
                   metaData.currentPage === 1
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : isDarkMode
-                    ? "bg-gray-700 text-white hover:bg-gray-600"
-                    : "bg-gray-200 text-black hover:bg-gray-300"
+                    : "bg-gray-700 text-white hover:bg-gray-600"
                 }`}
               >
                 Previous
@@ -242,9 +349,7 @@ const CodeTemplateSearch: React.FC = () => {
                 className={`px-4 py-2 rounded-md ${
                   metaData.currentPage === metaData.totalPages
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : isDarkMode
-                    ? "bg-gray-700 text-white hover:bg-gray-600"
-                    : "bg-gray-200 text-black hover:bg-gray-300"
+                    : "bg-gray-700 text-white hover:bg-gray-600"
                 }`}
               >
                 Next
