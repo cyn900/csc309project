@@ -27,8 +27,8 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "utils/auth.js"
-  ],
+    "utils/auth.ts"
+, "pages/api/blog/search.js"  ],
   "exclude": [
     "node_modules"
   ]

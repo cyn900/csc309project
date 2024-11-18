@@ -58,8 +58,6 @@ const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
         .status(400)
         .json({ message: "Fork must be either 'true' or 'false'." });
     }
-  } else {
-    conditions.push({ fork: false });
   }
 
   // Normalize tags to always be an array
@@ -98,6 +96,12 @@ const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 
   try {
+    // Get the total count of templates that match the conditions
+    const totalItems = await prisma.template.count({
+      where: { AND: conditions },
+    });
+
+    // Fetch the templates for the current page
     const templates = await prisma.template.findMany({
       where: { AND: conditions },
       include: {
@@ -109,7 +113,19 @@ const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
       take: pageSizeNum,
     });
 
-    res.status(200).json(templates);
+    // Calculate total pages
+    const totalPages = Math.ceil(totalItems / pageSizeNum);
+
+    // Return data and metadata
+    res.status(200).json({
+      data: templates,
+      meta: {
+        totalItems,
+        currentPage: pageNum,
+        pageSize: pageSizeNum,
+        totalPages,
+      },
+    });
   } catch (error: any) {
     console.error("Error fetching templates:", error);
     res.status(500).json({ message: "Internal server error." });
