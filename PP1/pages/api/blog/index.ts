@@ -102,6 +102,9 @@ export default async function handler(
       }
     });
 
+    // Get total count of first-level comments
+    const totalFirstLevelComments = comments.length;
+
     // Apply pagination manually
     const startIndex = (pageNum - 1) * pageSizeNum;
     const paginatedComments = comments.slice(
@@ -109,14 +112,16 @@ export default async function handler(
       startIndex + pageSizeNum
     );
 
-    // Send response
-    res.status(200).json({ blog, paginatedComments });
+    // Send response with totalFirstLevelComments
+    res.status(200).json({ 
+      blog, 
+      paginatedComments,
+      totalFirstLevelComments 
+    });
   } catch (error) {
     console.error("Error retrieving blog post:", error);
-    res
-      .status(500)
-      .json({
-        message: "Internal server error while retrieving the blog post",
-      });
+    res.status(500).json({
+      message: "Internal server error while retrieving the blog post",
+    });
   }
 }

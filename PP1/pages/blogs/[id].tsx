@@ -82,8 +82,8 @@ const BlogDetailPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
   const [subCommentPages, setSubCommentPages] = useState<Record<number, number>>({});
+  const [totalPages, setTotalPages] = useState(1);
   const COMMENTS_PER_PAGE = 5;
-  const [hasMore, setHasMore] = useState(true);
 
   const handleVote = async (type: 'upvote' | 'downvote') => {
     if (!blog) return;
@@ -143,44 +143,58 @@ const BlogDetailPage = () => {
         }
       );
 
-      setComments(prevComments => 
-        prevComments.map(comment => {
+      const updateVoteRecursively = (comments: Comment[]): Comment[] => {
+        return comments.map(comment => {
           if (comment.cID === commentId) {
-            return updateCommentVote(comment, voteType, response.data.comment._count);
+            return {
+              ...comment,
+              _count: {
+                ...comment._count,
+                upvoters: response.data.comment._count.upvoters,
+                downvoters: response.data.comment._count.downvoters
+              },
+              hasUpvoted: voteType === 'upvote' ? !comment.hasUpvoted : false,
+              hasDownvoted: voteType === 'downvote' ? !comment.hasDownvoted : false
+            };
           }
           if (comment.subComments) {
             return {
               ...comment,
-              subComments: comment.subComments.map(subComment => 
-                subComment.cID === commentId 
-                  ? updateCommentVote(subComment, voteType, response.data.comment._count)
-                  : subComment
-              )
+              subComments: updateVoteRecursively(comment.subComments)
             };
           }
           return comment;
-        })
-      );
+        });
+      };
+
+      setComments(prevComments => updateVoteRecursively(prevComments));
     } catch (error: any) {
       console.error('Error voting on comment:', error);
       alert(error.response?.data?.message || 'Failed to vote on comment');
     }
   };
 
-  const updateCommentVote = (
-    comment: Comment, 
-    voteType: 'upvote' | 'downvote', 
-    newCounts: { upvoters: number; downvoters: number }
-  ) => ({
-    ...comment,
-    _count: {
-      ...comment._count,
-      upvoters: newCounts.upvoters,
-      downvoters: newCounts.downvoters
-    },
-    hasUpvoted: voteType === 'upvote' ? !comment.hasUpvoted : false,
-    hasDownvoted: voteType === 'downvote' ? !comment.hasDownvoted : false
-  });
+  const updateCommentsRecursively = (comments: Comment[], newCommentData: Comment): Comment[] => {
+    return comments.map(comment => {
+      if (comment.cID === replyingTo) {
+        return {
+          ...comment,
+          subComments: [...(comment.subComments || []), newCommentData],
+          _count: {
+            ...comment._count,
+            subComments: (comment._count.subComments || 0) + 1
+          }
+        };
+      }
+      if (comment.subComments) {
+        return {
+          ...comment,
+          subComments: updateCommentsRecursively(comment.subComments, newCommentData)
+        };
+      }
+      return comment;
+    });
+  };
 
   const handleCommentSubmit = async (parentCommentId: number | null = null, content: string) => {
     const token = localStorage.getItem('accessToken');
@@ -196,7 +210,8 @@ const BlogDetailPage = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await axios.post(
+      // Post the new comment
+      await axios.post(
         '/api/comment/create',
         {
           bID: blog?.bID,
@@ -208,63 +223,50 @@ const BlogDetailPage = () => {
         }
       );
 
-      const newComment: Comment = {
-        cID: response.data.cID,
-        content: response.data.content,
-        createdAt: response.data.createdAt,
-        user: {
-          firstName: response.data.user.firstName,
-          lastName: response.data.user.lastName
-        },
-        _count: {
-          upvoters: 0,
-          downvoters: 0,
-          subComments: 0
-        },
-        hasUpvoted: false,
-        hasDownvoted: false,
-        subComments: []
-      };
+      // Clear the input
+      setNewComment('');
+      
+      // Store current expanded state
+      const currentExpanded = new Set(expandedComments);
+      
+      // Refetch comments to get the updated list with proper sorting
+      const commentsResponse = await axios.get(
+        `/api/blog?bID=${blog?.bID}&method=${commentSort}&page=${currentPage}&pageSize=${COMMENTS_PER_PAGE}`,
+        { headers: { Authorization: token } }
+      );
 
-      const updateCommentsRecursively = (comments: Comment[]): Comment[] => {
-        return comments.map(comment => {
-          if (comment.cID === parentCommentId) {
-            return {
-              ...comment,
-              subComments: comment.subComments 
-                ? [newComment, ...comment.subComments]
-                : [newComment],
-              _count: {
-                ...comment._count,
-                subComments: comment._count.subComments + 1
-              }
-            };
-          }
-          if (comment.subComments && comment.subComments.length > 0) {
-            return {
-              ...comment,
-              subComments: updateCommentsRecursively(comment.subComments)
-            };
+      // Refetch subcomments for all expanded comments
+      const updatedComments = await Promise.all(
+        commentsResponse.data.paginatedComments.map(async (comment: Comment) => {
+          if (currentExpanded.has(comment.cID)) {
+            const subResponse = await axios.get(
+              `/api/comment?cID=${comment.cID}&page=1&pageSize=${COMMENTS_PER_PAGE}`,
+              { headers: { Authorization: token } }
+            );
+            return { ...comment, subComments: subResponse.data };
           }
           return comment;
-        });
-      };
+        })
+      );
 
-      if (!parentCommentId) {
-        setNewComment('');
-        setComments(prevComments => [newComment, ...prevComments]);
-      } else {
-        setComments(prevComments => updateCommentsRecursively(prevComments));
-      }
+      setComments(updatedComments);
       
+      // Update counts
+      if (blog) {
+        setBlog(prev => ({
+          ...prev!,
+          _count: {
+            ...prev!._count,
+            comments: prev!._count.comments + 1
+          }
+        }));
+      }
       setTotalComments(prev => prev + 1);
+      
     } catch (error: any) {
-      if (error.response?.data?.message) {
-        alert(error.response.data.message);
-      } else if (error.message) {
-        alert(error.message);
-      } else {
-        alert('Failed to post comment');
+      console.error('Error submitting comment:', error);
+      if (error.response?.status >= 400) {
+        alert(error.response?.data?.message || error.message || 'Failed to post comment');
       }
     } finally {
       setIsSubmitting(false);
@@ -273,35 +275,69 @@ const BlogDetailPage = () => {
 
   const handleExpandComment = async (commentId: number) => {
     try {
-      const response = await axios.get(`/api/comment?cID=${commentId}&page=1&pageSize=${COMMENTS_PER_PAGE}`);
+      console.log('Starting handleExpandComment', { commentId });
+      let isExpanding = false;
+      
+      // First update the expanded state immediately
+      setExpandedComments(prev => {
+        console.log('Previous expanded state:', Array.from(prev));
+        const newExpanded = new Set(prev);
+        if (newExpanded.has(commentId)) {
+          console.log('Collapsing comment');
+          newExpanded.delete(commentId);
+        } else {
+          console.log('Expanding comment');
+          newExpanded.add(commentId);
+          isExpanding = true;
+        }
+        console.log('New expanded state:', Array.from(newExpanded));
+        return newExpanded;
+      });
 
-      setComments(prevComments => prevComments.map(comment => {
-        if (comment.cID === commentId) {
-          return {
-            ...comment,
-            subComments: response.data
-          };
-        }
-        if (comment.subComments) {
-          return {
-            ...comment,
-            subComments: comment.subComments.map(subComment => 
-              subComment.cID === commentId
-                ? { ...subComment, subComments: response.data }
-                : subComment
-            )
-          };
-        }
-        return comment;
-      }));
+      // Check if the comment is currently expanded
+      const isCurrentlyExpanded = expandedComments.has(commentId);
+      isExpanding = !isCurrentlyExpanded;
+
+      console.log('isExpanding:', isExpanding);
+      // If we're collapsing, return early
+      if (!isExpanding) {
+        console.log('Returning early - collapsing');
+        return;
+      }
+
+      // Then fetch the subcomments
+      const token = localStorage.getItem('accessToken');
+      const headers = token ? { Authorization: token } : {};
+      
+      console.log('Fetching subcomments');
+      const response = await axios.get(
+        `/api/comment?cID=${commentId}&page=1&pageSize=${COMMENTS_PER_PAGE}`, 
+        { headers }
+      );
+      console.log('Subcomments response:', response.data);
+
+      setComments(prevComments => {
+        console.log('Updating comments with subcomments');
+        return prevComments.map(comment => {
+          if (comment.cID === commentId) {
+            return {
+              ...comment,
+              subComments: response.data
+            };
+          }
+          return comment;
+        });
+      });
 
       setSubCommentPages({ ...subCommentPages, [commentId]: 1 });
-      const newExpanded = new Set(expandedComments);
-      newExpanded.add(commentId);
-      setExpandedComments(newExpanded);
     } catch (error) {
       console.error('Error fetching sub-comments:', error);
       alert('Failed to load replies');
+      setExpandedComments(prev => {
+        const newExpanded = new Set(prev);
+        newExpanded.delete(commentId);
+        return newExpanded;
+      });
     }
   };
 
@@ -336,25 +372,42 @@ const BlogDetailPage = () => {
     }
   };
 
-  const loadMoreComments = async () => {
-    if (!blog || !hasMore) return;
+  const handlePageChange = async (newPage: number) => {
+    if (!blog) return;
     
     try {
-      const nextPage = currentPage + 1;
       const response = await axios.get(
-        `/api/blog?bID=${blog.bID}&method=${commentSort}&page=${nextPage}&pageSize=${COMMENTS_PER_PAGE}`
+        `/api/blog?bID=${blog.bID}&method=${commentSort}&page=${newPage}&pageSize=${COMMENTS_PER_PAGE}&parentId=null`
       );
 
-      if (response.data.paginatedComments.length === 0) {
-        setHasMore(false);
-        return;
-      }
-
-      setComments(prev => [...prev, ...response.data.paginatedComments]);
-      setCurrentPage(nextPage);
+      setComments(response.data.paginatedComments);
+      setCurrentPage(newPage);
     } catch (error) {
-      console.error('Error loading more comments:', error);
-      alert('Failed to load more comments');
+      console.error('Error loading comments:', error);
+      alert('Failed to load comments');
+    }
+  };
+
+  const handleSubPageChange = async (commentId: number, page: number) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const headers = token ? { Authorization: token } : {};
+      
+      const response = await axios.get(`/api/comment?cID=${commentId}&page=${page}&pageSize=${COMMENTS_PER_PAGE}`, {
+        headers
+      });
+
+      setComments(prevComments => prevComments.map(comment => {
+        if (comment.cID === commentId) {
+          return { ...comment, subComments: response.data };
+        }
+        return comment;
+      }));
+
+      setSubCommentPages({ ...subCommentPages, [commentId]: page });
+    } catch (error) {
+      console.error('Error changing sub-comment page:', error);
+      alert('Failed to load comments');
     }
   };
 
@@ -367,26 +420,16 @@ const BlogDetailPage = () => {
         const token = localStorage.getItem('accessToken');
         const headers = token ? { Authorization: token } : {};
 
-        // Fetch blog details
-        const response = await axios.get(`/api/blog?bID=${id}&method=${commentSort}&page=${currentPage}`, {
-          headers
-        });
+        const response = await axios.get(
+          `/api/blog?bID=${id}&method=${commentSort}&page=${currentPage}&pageSize=${COMMENTS_PER_PAGE}&parentId=null`, 
+          { headers }
+        );
 
-        const blogData = response.data.blog;
-        setBlog(blogData);
+        setBlog(response.data.blog);
         setComments(response.data.paginatedComments);
-        setTotalComments(blogData._count.comments);
-
-        // Only check vote status if user is logged in
-        if (token) {
-          const userResponse = await axios.get('/api/user/me', {
-            headers: { Authorization: token }
-          });
-          const currentUserID = userResponse.data.user.uID;
-
-          setHasUpvoted(blogData.upvoters?.some((voter: { uID: number }) => voter.uID === currentUserID) || false);
-          setHasDownvoted(blogData.downvoters?.some((voter: { uID: number }) => voter.uID === currentUserID) || false);
-        }
+        const total = response.data.totalFirstLevelComments || 0;
+        setTotalComments(total);
+        setTotalPages(Math.max(1, Math.ceil(total / COMMENTS_PER_PAGE)));
       } catch (error: any) {
         setError(error.response?.data?.message || 'Failed to fetch blog details');
       } finally {
@@ -582,20 +625,45 @@ const BlogDetailPage = () => {
                 isExpanded={expandedComments.has(comment.cID)}
                 hasMoreComments={comment._count.subComments > (COMMENTS_PER_PAGE * (subCommentPages[comment.cID] || 1))}
                 isDarkMode={isDarkMode}
+                currentSubPage={subCommentPages[comment.cID] || 1}
+                onSubPageChange={(page) => handleSubPageChange(comment.cID, page)}
+                level={0}
+                maxLevel={1}
               />
             ))}
 
-            {hasMore && comments.length > 0 && (
-              <button
-                onClick={loadMoreComments}
-                className={`w-full text-center py-2 rounded-lg mt-4 ${
-                  isDarkMode 
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-300" 
-                    : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                }`}
-              >
-                Load More Comments
-              </button>
+            {comments.length > 0 && (
+              <div className="flex justify-center gap-2 mt-6">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 rounded-lg ${
+                    isDarkMode 
+                      ? "bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800" 
+                      : "bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100"
+                  } disabled:cursor-not-allowed`}
+                >
+                  Previous
+                </button>
+                
+                <span className={`px-4 py-2 ${
+                  isDarkMode ? "text-gray-300" : "text-gray-700"
+                }`}>
+                  Page {currentPage} of {totalPages}
+                </span>
+                
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`px-4 py-2 rounded-lg ${
+                    isDarkMode 
+                      ? "bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800" 
+                      : "bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100"
+                  } disabled:cursor-not-allowed`}
+                >
+                  Next
+                </button>
+              </div>
             )}
           </div>
         </section>
