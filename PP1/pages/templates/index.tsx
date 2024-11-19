@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useTheme } from "../../contexts/ThemeContext";
+import { useTheme } from "../../context/ThemeContext";
 import axios from "axios";
 import Link from "next/link";
 

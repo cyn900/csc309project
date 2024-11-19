@@ -1,7 +1,7 @@
-import { useTheme } from "../../contexts/ThemeContext";
+import { useTheme } from "../../context/ThemeContext";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import axios from 'axios';
+import axios from "axios";
 
 interface User {
   firstName: string;
@@ -18,16 +18,16 @@ const Navbar: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const getInitials = (firstName?: string, lastName?: string) => {
-    if (!firstName || !lastName) return '?';
+    if (!firstName || !lastName) return "?";
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
   const checkAuth = async () => {
-    const token = localStorage.getItem('accessToken');
-    const storedUserData = localStorage.getItem('userData');
-    
-    console.log('Checking auth with token:', token);
-    console.log('Stored user data:', storedUserData);
+    const token = localStorage.getItem("accessToken");
+    const storedUserData = localStorage.getItem("userData");
+
+    console.log("Checking auth with token:", token);
+    console.log("Stored user data:", storedUserData);
 
     if (!token) {
       setUser(null);
@@ -42,30 +42,30 @@ const Navbar: React.FC = () => {
         setUser(userData);
         setIsLoading(false);
       } catch (e) {
-        console.error('Failed to parse stored user data');
+        console.error("Failed to parse stored user data");
       }
     }
 
     // Then verify with server
     try {
-      const response = await axios.get('/api/user/profile', {
-        headers: { 
-          'Authorization': token // token already includes 'Bearer '
-        }
+      const response = await axios.get("/api/user/profile", {
+        headers: {
+          Authorization: token, // token already includes 'Bearer '
+        },
       });
-      
+
       if (response.data.user) {
         setUser(response.data.user);
-        localStorage.setItem('userData', JSON.stringify(response.data.user));
+        localStorage.setItem("userData", JSON.stringify(response.data.user));
       } else {
-        console.error('Invalid user data in response');
+        console.error("Invalid user data in response");
         setUser(null);
-        localStorage.removeItem('userData');
+        localStorage.removeItem("userData");
       }
     } catch (error) {
-      console.error('Failed to fetch user:', error);
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('userData');
+      console.error("Failed to fetch user:", error);
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("userData");
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -74,7 +74,7 @@ const Navbar: React.FC = () => {
 
   useEffect(() => {
     const handleUserLogin = (event: CustomEvent) => {
-      console.log('Login event received with data:', event.detail);
+      console.log("Login event received with data:", event.detail);
       if (event.detail) {
         setUser(event.detail);
       }
@@ -87,31 +87,32 @@ const Navbar: React.FC = () => {
 
     checkAuthStatus();
 
-    window.addEventListener('userLoggedIn', handleUserLogin as EventListener);
+    window.addEventListener("userLoggedIn", handleUserLogin as EventListener);
 
     return () => {
-      window.removeEventListener('userLoggedIn', handleUserLogin as EventListener);
+      window.removeEventListener(
+        "userLoggedIn",
+        handleUserLogin as EventListener
+      );
     };
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('userData');
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("userData");
     setUser(null);
     setIsProfileOpen(false);
-    
-    const event = new CustomEvent('userLoggedIn', { detail: null });
+
+    const event = new CustomEvent("userLoggedIn", { detail: null });
     window.dispatchEvent(event);
-    
-    window.location.href = '/login';
+
+    window.location.href = "/login";
   };
 
   const renderAuthSection = () => {
     if (isLoading) {
-      return (
-        <div className="w-8 h-8 rounded-full bg-gray-500 animate-pulse" />
-      );
+      return <div className="w-8 h-8 rounded-full bg-gray-500 animate-pulse" />;
     }
 
     if (user && user.firstName && user.lastName) {
@@ -125,7 +126,7 @@ const Navbar: React.FC = () => {
           >
             {user.avatar ? (
               <img
-                src={user.avatar.replace('public/', '')}
+                src={user.avatar.replace("public/", "")}
                 alt={`${user.firstName}'s avatar`}
                 className="w-8 h-8 rounded-full object-cover border-2 border-blue-500"
               />
@@ -134,22 +135,24 @@ const Navbar: React.FC = () => {
                 {getInitials(user.firstName, user.lastName)}
               </div>
             )}
-            <span className="hidden sm:block">
-              {user.firstName}
-            </span>
+            <span className="hidden sm:block">{user.firstName}</span>
           </button>
 
           {isProfileOpen && (
-            <div 
+            <div
               className={`absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 z-50 ${
                 isDarkMode ? "bg-gray-700" : "bg-white"
               }`}
             >
-              <div className={`px-4 py-2 border-b ${isDarkMode ? "border-gray-600" : "border-gray-200"}`}>
+              <div
+                className={`px-4 py-2 border-b ${
+                  isDarkMode ? "border-gray-600" : "border-gray-200"
+                }`}
+              >
                 <div className="flex items-center space-x-3 mb-2">
                   {user.avatar ? (
                     <img
-                      src={user.avatar.replace('public/', '')}
+                      src={user.avatar.replace("public/", "")}
                       alt={`${user.firstName}'s avatar`}
                       className="w-10 h-10 rounded-full object-cover border-2 border-blue-500"
                     />
@@ -159,26 +162,40 @@ const Navbar: React.FC = () => {
                     </div>
                   )}
                   <div>
-                    <p className={`text-sm font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                    <p
+                      className={`text-sm font-medium ${
+                        isDarkMode ? "text-white" : "text-gray-900"
+                      }`}
+                    >
                       {`${user.firstName} ${user.lastName}`}
                     </p>
-                    <p className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"} truncate`}>
+                    <p
+                      className={`text-xs ${
+                        isDarkMode ? "text-gray-400" : "text-gray-500"
+                      } truncate`}
+                    >
                       {user.email}
                     </p>
                   </div>
                 </div>
               </div>
               <Link href="/profile">
-                <button className={`block px-4 py-2 text-sm w-full text-left ${
-                  isDarkMode ? "text-white hover:bg-gray-600" : "text-gray-700 hover:bg-gray-100"
-                }`}>
+                <button
+                  className={`block px-4 py-2 text-sm w-full text-left ${
+                    isDarkMode
+                      ? "text-white hover:bg-gray-600"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
                   Profile Settings
                 </button>
               </Link>
               <button
                 onClick={handleLogout}
                 className={`block px-4 py-2 text-sm w-full text-left ${
-                  isDarkMode ? "text-red-400 hover:bg-gray-600" : "text-red-600 hover:bg-gray-100"
+                  isDarkMode
+                    ? "text-red-400 hover:bg-gray-600"
+                    : "text-red-600 hover:bg-gray-100"
                 }`}
               >
                 Logout
@@ -199,17 +216,33 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className={`p-4 ${isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 text-black"}`}>
+    <nav
+      className={`p-4 ${
+        isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 text-black"
+      }`}
+    >
       <div className="flex justify-between items-center">
         <div className="text-xl">Scriptorium</div>
 
         <div className="sm:hidden">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className={`text-white focus:outline-none ${isDarkMode ? "text-white" : "text-black"}`}
+            className={`text-white focus:outline-none ${
+              isDarkMode ? "text-white" : "text-black"
+            }`}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 6h16M4 12h16M4 18h16"
+              ></path>
             </svg>
           </button>
         </div>
@@ -249,9 +282,11 @@ const Navbar: React.FC = () => {
       </div>
 
       {isMenuOpen && (
-        <div className={`sm:hidden flex flex-col space-y-4 mt-4 p-4 rounded-lg ${
-          isDarkMode ? "bg-gray-800 text-white" : "bg-white text-black"
-        }`}>
+        <div
+          className={`sm:hidden flex flex-col space-y-4 mt-4 p-4 rounded-lg ${
+            isDarkMode ? "bg-gray-800 text-white" : "bg-white text-black"
+          }`}
+        >
           <Link href="/blogs">
             <button className="px-4 py-2 rounded-lg hover:bg-gray-600 w-full text-left">
               Blogs

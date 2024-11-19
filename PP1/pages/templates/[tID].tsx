@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
-import { useTheme } from "../../contexts/ThemeContext";
+import { useTheme } from "../../context/ThemeContext";
+import { useCode } from "../../context/CodeContext"; // Import the CodeContext
 
 const TemplateDetails: React.FC = () => {
   const router = useRouter();
   const { tID } = router.query;
   const [template, setTemplate] = useState(null);
   const { isDarkMode } = useTheme();
+  const { setCode } = useCode(); // Get setCode from CodeContext
 
   useEffect(() => {
     if (tID) {
@@ -32,7 +34,6 @@ const TemplateDetails: React.FC = () => {
       if (confirm) {
         try {
           // Make a POST request to create a new forked template
-
           const token = localStorage.getItem("accessToken");
 
           const response = await axios.post(
@@ -51,11 +52,11 @@ const TemplateDetails: React.FC = () => {
             }
           );
 
-          // Redirect to the code execution page with only the code segment
-          router.push({
-            pathname: "/code-execution",
-            query: { code: template.code },
-          });
+          // Save the forked template code in the CodeContext
+          setCode(template.code);
+
+          // Redirect to the code execution page
+          router.push("/code");
         } catch (error) {
           console.error("Failed to fork the template:", error);
           alert(

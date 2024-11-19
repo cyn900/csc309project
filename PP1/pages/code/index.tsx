@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { useTheme } from "../../contexts/ThemeContext"; // Import the useTheme hook
+import { useTheme } from "../../context/ThemeContext"; // Import the useTheme hook
+import { useCode } from "../../context/CodeContext"; // Import the useCode hook
 
 // Dynamically import Monaco Editor with SSR disabled
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
@@ -8,23 +9,24 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
 });
 
 const CodeExecution: React.FC = () => {
-  const [code, setCode] = useState<string>("");
-  const [output, setOutput] = useState<string>("");
-  const [language, setLanguage] = useState<string>("javascript");
+  const [code, setCode] = useState<string>(""); // Code editor state
+  const [output, setOutput] = useState<string>(""); // Execution output state
+  const [language, setLanguage] = useState<string>("javascript"); // Selected language state
 
   const { isDarkMode } = useTheme(); // Access the current theme
+  const { code: contextCode, setCode: setContextCode } = useCode(); // Access the code from CodeContext
 
   useEffect(() => {
-    // This will ensure Monaco Editor is only initialized once the component is mounted
-    if (typeof window !== "undefined") {
-      console.log("Monaco Editor Loaded on Client-Side.");
+    // Retrieve the code from CodeContext when the component mounts
+    if (contextCode) {
+      setCode(contextCode); // Set the editor code with the context code
+      setContextCode(""); // Clear the code from the context
     }
-  }, []); // Empty dependency array ensures this runs only once when the component mounts
+  }, [contextCode, setContextCode]); // Dependencies ensure this runs when context changes
 
   const handleExecute = (e: React.FormEvent) => {
     e.preventDefault();
     // Placeholder logic to simulate code execution
-    // In a real application, you'd send the code to a backend server to execute it
     setOutput("Execution Result: \n" + code);
   };
 
