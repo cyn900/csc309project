@@ -57,9 +57,21 @@ const CodeExecution: React.FC = () => {
       const { stdout, stderr } = response.data.output;
       const formattedOutput = `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`;
       setOutput(formattedOutput);
+      setError(null); // Clear any previous errors
     } catch (err: any) {
       console.error("Execution failed:", err);
-      setError(err.message || "An unexpected error occurred.");
+
+      // Handle 400 errors specifically
+      if (err.response && err.response.status === 400) {
+        const { stderr } = err.response.data.output || {};
+        const errorMessage = `Execution failed with backend error.\n\nSTDERR:\n${
+          stderr || "No stderr provided."
+        }`;
+        setError(errorMessage);
+      } else {
+        // General error handling for other status codes
+        setError(err.message || "An unexpected error occurred.");
+      }
     }
   };
 
@@ -192,12 +204,12 @@ const CodeExecution: React.FC = () => {
         <div className="mt-6">
           <h2 className="text-xl font-medium">Execution Result</h2>
           {error ? (
-            <pre className="p-4 bg-red-100 text-red-700 rounded-md mt-2">
+            <pre className="p-4 bg-red-100 text-red-700 rounded-md mt-2 whitespace-pre-wrap">
               Error: {error}
             </pre>
           ) : (
             <pre
-              className={`p-4 rounded-md mt-2 ${
+              className={`p-4 rounded-md mt-2 whitespace-pre-wrap ${
                 isDarkMode ? "bg-gray-700 text-white" : "bg-gray-100 text-black"
               }`}
             >
