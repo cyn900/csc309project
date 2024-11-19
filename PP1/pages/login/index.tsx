@@ -19,7 +19,7 @@ const Login: React.FC = () => {
       if (response.data.accessToken) {
         const token = response.data.accessToken;
         localStorage.setItem("accessToken", `Bearer ${token}`);
-        localStorage.setItem("refreshToken", response.data.refreshToken);
+        localStorage.setItem("refreshToken", `Bearer ${response.data.refreshToken}`);
 
         try {
           const userResponse = await axios.get("/api/user/profile", {
