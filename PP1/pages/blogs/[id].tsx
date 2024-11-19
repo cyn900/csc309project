@@ -321,16 +321,16 @@ const BlogDetailPage = () => {
         return newExpanded;
       });
 
-      // Check if the comment is currently expanded
-      const isCurrentlyExpanded = expandedComments.has(commentId);
-      isExpanding = !isCurrentlyExpanded;
+    //   // Check if the comment is currently expanded
+    //   const isCurrentlyExpanded = expandedComments.has(commentId);
+    //   isExpanding = !isCurrentlyExpanded;
 
-      console.log("isExpanding:", isExpanding);
-      // If we're collapsing, return early
-      if (!isExpanding) {
-        console.log("Returning early - collapsing");
-        return;
-      }
+    //   console.log("isExpanding:", isExpanding);
+    //   // If we're collapsing, return early
+    //   if (!isExpanding) {
+    //     console.log("Returning early - collapsing");
+    //     return;
+    //   }
 
       // Then fetch the subcomments
       const token = localStorage.getItem("accessToken");
@@ -345,6 +345,7 @@ const BlogDetailPage = () => {
 
       setComments((prevComments) => {
         console.log("Updating comments with subcomments");
+        isExpanding = true;
         return prevComments.map((comment) => {
           if (comment.cID === commentId) {
             return {
