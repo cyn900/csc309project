@@ -10,6 +10,7 @@ interface TemplateQueryParams {
   explanation?: string;
   page?: string;
   pageSize?: string;
+  tID?: number;
 }
 
 interface TemplateRequestBody {
@@ -28,6 +29,7 @@ const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 
   const {
+    tID,
     title,
     tags,
     fork,
@@ -36,6 +38,30 @@ const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
     pageSize = "5",
   } = req.query as Partial<TemplateQueryParams>;
 
+  // Check if `tID` is provided for specific template retrieval
+  if (tID) {
+    try {
+      const template = await prisma.template.findUnique({
+        where: { tID: parseInt(tID, 10) },
+        include: {
+          tags: true,
+          user: true,
+          blogs: true,
+        },
+      });
+
+      if (!template) {
+        return res.status(404).json({ message: "Template not found." });
+      }
+
+      return res.status(200).json(template);
+    } catch (error: any) {
+      console.error("Error fetching specific template:", error);
+      return res.status(500).json({ message: "Internal server error." });
+    }
+  }
+
+  // If no `tID` is provided, continue with regular filtering logic
   const pageNum = parseInt(page, 10);
   const pageSizeNum = parseInt(pageSize, 10);
 

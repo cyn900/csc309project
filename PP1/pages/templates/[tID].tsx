@@ -11,7 +11,7 @@ const TemplateDetails: React.FC = () => {
     if (tID) {
       const fetchTemplate = async () => {
         try {
-          const response = await axios.get(`/api/templates/${tID}`);
+          const response = await axios.get(`/api/templates/?tID=${tID}`);
           setTemplate(response.data);
         } catch (error) {
           console.error("Failed to fetch template details:", error);
