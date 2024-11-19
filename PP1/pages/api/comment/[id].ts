@@ -41,6 +41,14 @@ export default async function handler(
   }
 
   try {
+    // Add total count query for pagination
+    const totalComments = await prisma.comment.count({
+      where: {
+        pID: commentId,
+        hidden: false
+      }
+    });
+
     const comment = await prisma.comment.findUnique({
       where: { cID: commentId },
       include: {
@@ -123,6 +131,15 @@ export default async function handler(
     // Remove the upvoters and downvoters arrays from the main comment
     delete (transformedComment as any).upvoters;
     delete (transformedComment as any).downvoters;
+
+    // If this is a request for replies (expand=true), wrap the response
+    if (req.query.expand === 'true') {
+      return res.status(200).json({
+        comments: transformedComment.subComments || [],
+        totalComments,
+        totalPages: Math.ceil(totalComments / limitNumber)
+      });
+    }
 
     res.status(200).json(transformedComment);
   } catch (error) {

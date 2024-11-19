@@ -246,7 +246,7 @@ const Comment = ({
           <div className="space-y-4 mt-4">
             {comment.subComments.map((subComment) => (
               <Comment
-                key={subComment.cID}
+                key={`${comment.cID}-${subComment.cID}-${level + 1}`}
                 comment={subComment}
                 level={level + 1}
                 onVote={onVote}
