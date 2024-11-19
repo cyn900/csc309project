@@ -222,7 +222,11 @@ const Navbar: React.FC = () => {
       }`}
     >
       <div className="flex justify-between items-center">
-        <div className="text-xl">Scriptorium</div>
+        <div className="text-xl">
+          <Link href="/">
+            <h2 className="hover:underline">Scriptorium</h2>
+          </Link>
+        </div>
 
         <div className="sm:hidden">
           <button
