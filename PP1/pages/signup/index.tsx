@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useTheme } from "../../contexts/ThemeContext"; // Import the useTheme hook
+import { useTheme } from "../../context/ThemeContext"; // Import the useTheme hook
 
 const Signup: React.FC = () => {
   const [firstName, setFirstName] = useState<string>("");

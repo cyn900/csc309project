@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { useTheme } from "../../contexts/ThemeContext"; // Import the useTheme hook
-import { useRouter } from 'next/router';
-import axios from 'axios';
+import { useTheme } from "../../context/ThemeContext"; // Import the useTheme hook
+import { useRouter } from "next/router";
+import axios from "axios";
 
 const Login: React.FC = () => {
   const router = useRouter();
@@ -13,37 +13,40 @@ const Login: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await axios.post('/api/user/login', { email, password });
-      console.log('Login response:', response.data);
-      
+      const response = await axios.post("/api/user/login", { email, password });
+      console.log("Login response:", response.data);
+
       if (response.data.accessToken) {
         const token = response.data.accessToken;
-        localStorage.setItem('accessToken', `Bearer ${token}`);
-        localStorage.setItem('refreshToken', response.data.refreshToken);
-        
+        localStorage.setItem("accessToken", `Bearer ${token}`);
+        localStorage.setItem("refreshToken", response.data.refreshToken);
+
         try {
-          const userResponse = await axios.get('/api/user/profile', {
-            headers: { 
-              'Authorization': `Bearer ${token}`
-            }
+          const userResponse = await axios.get("/api/user/profile", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           });
-          
-          console.log('User data after login:', userResponse.data);
-          
-          localStorage.setItem('userData', JSON.stringify(userResponse.data.user));
-          
-          const event = new CustomEvent('userLoggedIn', { 
-            detail: userResponse.data.user
+
+          console.log("User data after login:", userResponse.data);
+
+          localStorage.setItem(
+            "userData",
+            JSON.stringify(userResponse.data.user)
+          );
+
+          const event = new CustomEvent("userLoggedIn", {
+            detail: userResponse.data.user,
           });
           window.dispatchEvent(event);
-          
-          router.push('/blogs');
+
+          router.push("/blogs");
         } catch (error) {
-          console.error('Profile fetch failed:', error);
+          console.error("Profile fetch failed:", error);
         }
       }
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
     }
   };
 

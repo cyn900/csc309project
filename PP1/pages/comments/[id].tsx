@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import axios from 'axios';
-import { useTheme } from "@/contexts/ThemeContext";
-import Comment from '../components/Comment';
-import { FaArrowLeft } from 'react-icons/fa';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import axios from "axios";
+import { useTheme } from "@/context/ThemeContext";
+import Comment from "../components/Comment";
+import { FaArrowLeft } from "react-icons/fa";
 
 type Comment = {
   cID: number;
@@ -31,8 +31,8 @@ type CommentVoteResponse = {
     _count: {
       upvoters: number;
       downvoters: number;
-    }
-  }
+    };
+  };
 };
 
 const CommentPage = () => {
@@ -42,24 +42,32 @@ const CommentPage = () => {
   const [comment, setComment] = useState<Comment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newComment, setNewComment] = useState('');
+  const [newComment, setNewComment] = useState("");
   const [totalComments, setTotalComments] = useState(0);
-  const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
-  const [subCommentPages, setSubCommentPages] = useState<Record<number, number>>({});
+  const [expandedComments, setExpandedComments] = useState<Set<number>>(
+    new Set()
+  );
+  const [subCommentPages, setSubCommentPages] = useState<
+    Record<number, number>
+  >({});
   const COMMENTS_PER_PAGE = 5;
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
-  const [currentSubPage, setCurrentSubPage] = useState<Record<number, number>>({});
-  const [totalSubPages, setTotalSubPages] = useState<Record<number, number>>({});
+  const [currentSubPage, setCurrentSubPage] = useState<Record<number, number>>(
+    {}
+  );
+  const [totalSubPages, setTotalSubPages] = useState<Record<number, number>>(
+    {}
+  );
 
   useEffect(() => {
     const fetchComment = async () => {
       if (!id) return;
-      
+
       try {
         const response = await axios.get(`/api/comment/${id}`);
         setComment(response.data);
       } catch (error) {
-        console.error('Error fetching comment:', error);
+        console.error("Error fetching comment:", error);
       } finally {
         setIsLoading(false);
       }
@@ -68,44 +76,48 @@ const CommentPage = () => {
     fetchComment();
   }, [id]);
 
-  const handleCommentVote = async (commentId: number, voteType: 'upvote' | 'downvote') => {
-    const token = localStorage.getItem('accessToken');
+  const handleCommentVote = async (
+    commentId: number,
+    voteType: "upvote" | "downvote"
+  ) => {
+    const token = localStorage.getItem("accessToken");
     if (!token) {
-      alert('Please log in to vote');
+      alert("Please log in to vote");
       return;
     }
 
     try {
       const response = await axios.post<CommentVoteResponse>(
-        '/api/comment/vote',
+        "/api/comment/vote",
         {
           cID: commentId.toString(),
-          voteType
+          voteType,
         },
         {
-          headers: { Authorization: token }
+          headers: { Authorization: token },
         }
       );
 
       // Update comments recursively
       const updateVotes = (comments: Comment[]): Comment[] => {
-        return comments.map(comment => {
+        return comments.map((comment) => {
           if (comment.cID === commentId) {
             return {
               ...comment,
               _count: {
                 ...comment._count,
                 upvoters: response.data.comment._count.upvoters,
-                downvoters: response.data.comment._count.downvoters
+                downvoters: response.data.comment._count.downvoters,
               },
-              hasUpvoted: voteType === 'upvote' ? !comment.hasUpvoted : false,
-              hasDownvoted: voteType === 'downvote' ? !comment.hasDownvoted : false
+              hasUpvoted: voteType === "upvote" ? !comment.hasUpvoted : false,
+              hasDownvoted:
+                voteType === "downvote" ? !comment.hasDownvoted : false,
             };
           }
           if (comment.subComments) {
             return {
               ...comment,
-              subComments: updateVotes(comment.subComments)
+              subComments: updateVotes(comment.subComments),
             };
           }
           return comment;
@@ -117,34 +129,37 @@ const CommentPage = () => {
         return updateVotes([prevComment])[0];
       });
     } catch (error: any) {
-      console.error('Error voting on comment:', error);
-      alert(error.response?.data?.message || 'Failed to vote on comment');
+      console.error("Error voting on comment:", error);
+      alert(error.response?.data?.message || "Failed to vote on comment");
     }
   };
 
-  const handleCommentSubmit = async (parentCommentId: number | null = null, content: string) => {
-    const token = localStorage.getItem('accessToken');
+  const handleCommentSubmit = async (
+    parentCommentId: number | null = null,
+    content: string
+  ) => {
+    const token = localStorage.getItem("accessToken");
     if (!token) {
-      alert('Please log in to comment');
+      alert("Please log in to comment");
       return;
     }
 
     if (!content.trim()) {
-      alert('Please enter a comment');
+      alert("Please enter a comment");
       return;
     }
 
     setIsSubmitting(true);
     try {
       const response = await axios.post(
-        '/api/comment/create',
+        "/api/comment/create",
         {
           bID: comment?.blog?.bID,
           content: content,
-          pID: parentCommentId
+          pID: parentCommentId,
         },
         {
-          headers: { Authorization: token }
+          headers: { Authorization: token },
         }
       );
 
@@ -157,17 +172,17 @@ const CommentPage = () => {
         _count: {
           upvoters: 0,
           downvoters: 0,
-          subComments: 0
+          subComments: 0,
         },
         hasUpvoted: false,
         hasDownvoted: false,
-        subComments: []
+        subComments: [],
       };
 
-      setNewComment('');
-      
+      setNewComment("");
+
       if (parentCommentId) {
-        setComment(prevComment => {
+        setComment((prevComment) => {
           if (!prevComment) return null;
           const updateCommentsRecursively = (comment: Comment): Comment => {
             if (comment.cID === parentCommentId) {
@@ -176,14 +191,14 @@ const CommentPage = () => {
                 subComments: [...(comment.subComments || []), newCommentData],
                 _count: {
                   ...comment._count,
-                  subComments: comment._count.subComments + 1
-                }
+                  subComments: comment._count.subComments + 1,
+                },
               };
             }
             if (comment.subComments) {
               return {
                 ...comment,
-                subComments: comment.subComments.map(updateCommentsRecursively)
+                subComments: comment.subComments.map(updateCommentsRecursively),
               };
             }
             return comment;
@@ -191,11 +206,15 @@ const CommentPage = () => {
           return updateCommentsRecursively(prevComment);
         });
       }
-      
-      setTotalComments(prev => prev + 1);
+
+      setTotalComments((prev) => prev + 1);
     } catch (error: any) {
       if (error.response?.status >= 400) {
-        alert(error.response?.data?.message || error.message || 'Failed to post comment');
+        alert(
+          error.response?.data?.message ||
+            error.message ||
+            "Failed to post comment"
+        );
       }
     } finally {
       setIsSubmitting(false);
@@ -206,7 +225,7 @@ const CommentPage = () => {
     try {
       // Check if we're collapsing
       if (expandedComments.has(commentId)) {
-        setExpandedComments(prev => {
+        setExpandedComments((prev) => {
           const newExpanded = new Set(prev);
           newExpanded.delete(commentId);
           return newExpanded;
@@ -215,25 +234,25 @@ const CommentPage = () => {
       }
 
       // Fetch the subcomments first
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem("accessToken");
       const headers = token ? { Authorization: token } : {};
-      
+
       const response = await axios.get(
-        `/api/comment?cID=${commentId}&page=1&pageSize=${COMMENTS_PER_PAGE}`, 
+        `/api/comment?cID=${commentId}&page=1&pageSize=${COMMENTS_PER_PAGE}`,
         { headers }
       );
 
       // Update comments with the fetched subcomments
-      setComment(prevComment => {
+      setComment((prevComment) => {
         if (!prevComment) return null;
         return {
           ...prevComment,
-          subComments: response.data
+          subComments: response.data,
         };
       });
 
       // Update expanded state after successful fetch
-      setExpandedComments(prev => {
+      setExpandedComments((prev) => {
         const newExpanded = new Set(prev);
         newExpanded.add(commentId);
         return newExpanded;
@@ -241,37 +260,39 @@ const CommentPage = () => {
 
       setSubCommentPages({ ...subCommentPages, [commentId]: 1 });
     } catch (error) {
-      console.error('Error fetching sub-comments:', error);
-      alert('Failed to load replies');
+      console.error("Error fetching sub-comments:", error);
+      alert("Failed to load replies");
     }
   };
 
   const loadMoreSubComments = async (commentId: number) => {
     try {
       const nextPage = (subCommentPages[commentId] || 1) + 1;
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem("accessToken");
       const headers = token ? { Authorization: token } : {};
 
       const response = await axios.get(
-        `/api/comment/${commentId}/replies?skip=${(nextPage - 1) * COMMENTS_PER_PAGE}`,
+        `/api/comment/${commentId}/replies?skip=${
+          (nextPage - 1) * COMMENTS_PER_PAGE
+        }`,
         { headers }
       );
 
-      setComment(prevComment => {
+      setComment((prevComment) => {
         if (!prevComment) return null;
 
         const updateCommentsRecursively = (comment: Comment): Comment => {
           if (comment.cID === commentId) {
             return {
               ...comment,
-              subComments: [...(comment.subComments || []), ...response.data]
+              subComments: [...(comment.subComments || []), ...response.data],
             };
           }
           if (!comment.subComments) return comment;
 
           return {
             ...comment,
-            subComments: comment.subComments.map(updateCommentsRecursively)
+            subComments: comment.subComments.map(updateCommentsRecursively),
           };
         };
 
@@ -280,27 +301,30 @@ const CommentPage = () => {
 
       setSubCommentPages({ ...subCommentPages, [commentId]: nextPage });
     } catch (error) {
-      console.error('Error loading more sub-comments:', error);
-      alert('Failed to load more replies');
+      console.error("Error loading more sub-comments:", error);
+      alert("Failed to load more replies");
     }
   };
 
   const updateCommentsRecursively = (comments: Comment[]): Comment[] => {
-    return comments.map(comment => {
+    return comments.map((comment) => {
       if (comment.cID === replyingTo) {
         return {
           ...comment,
-          subComments: [...(comment.subComments || []), newComment] as Comment[],
+          subComments: [
+            ...(comment.subComments || []),
+            newComment,
+          ] as Comment[],
           _count: {
             ...comment._count,
-            subComments: (comment._count.subComments || 0) + 1
-          }
+            subComments: (comment._count.subComments || 0) + 1,
+          },
         };
       }
       if (comment.subComments) {
         return {
           ...comment,
-          subComments: updateCommentsRecursively(comment.subComments)
+          subComments: updateCommentsRecursively(comment.subComments),
         };
       }
       return comment;
@@ -309,14 +333,17 @@ const CommentPage = () => {
 
   const handleSubPageChange = async (commentId: number, page: number) => {
     try {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem("accessToken");
       const headers = token ? { Authorization: token } : {};
-      
-      const response = await axios.get(`/api/comment?cID=${commentId}&page=${page}&pageSize=${COMMENTS_PER_PAGE}`, {
-        headers
-      });
 
-      setComment(prevComment => {
+      const response = await axios.get(
+        `/api/comment?cID=${commentId}&page=${page}&pageSize=${COMMENTS_PER_PAGE}`,
+        {
+          headers,
+        }
+      );
+
+      setComment((prevComment) => {
         if (!prevComment) return null;
         const updateCommentsRecursively = (comment: Comment): Comment => {
           if (comment.cID === commentId) {
@@ -325,7 +352,7 @@ const CommentPage = () => {
           if (comment.subComments) {
             return {
               ...comment,
-              subComments: comment.subComments.map(updateCommentsRecursively)
+              subComments: comment.subComments.map(updateCommentsRecursively),
             };
           }
           return comment;
@@ -333,10 +360,10 @@ const CommentPage = () => {
         return updateCommentsRecursively(prevComment);
       });
 
-      setCurrentSubPage(prev => ({ ...prev, [commentId]: page }));
+      setCurrentSubPage((prev) => ({ ...prev, [commentId]: page }));
     } catch (error) {
-      console.error('Error changing sub-comment page:', error);
-      alert('Failed to load comments');
+      console.error("Error changing sub-comment page:", error);
+      alert("Failed to load comments");
     }
   };
 
@@ -349,7 +376,11 @@ const CommentPage = () => {
   }
 
   return (
-    <div className={`min-h-screen p-8 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"}`}>
+    <div
+      className={`min-h-screen p-8 ${
+        isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
+      }`}
+    >
       <div className="max-w-4xl mx-auto">
         <button
           onClick={() => router.back()}
@@ -367,7 +398,10 @@ const CommentPage = () => {
           onLoadSubComments={handleExpandComment}
           onLoadMore={loadMoreSubComments}
           isExpanded={expandedComments.has(comment.cID)}
-          hasMoreComments={comment._count.subComments > (COMMENTS_PER_PAGE * (subCommentPages[comment.cID] || 1))}
+          hasMoreComments={
+            comment._count.subComments >
+            COMMENTS_PER_PAGE * (subCommentPages[comment.cID] || 1)
+          }
           isDarkMode={isDarkMode}
           currentSubPage={currentSubPage[comment.cID] || 1}
           onSubPageChange={handleSubPageChange}
@@ -376,29 +410,45 @@ const CommentPage = () => {
         {comment._count.subComments > COMMENTS_PER_PAGE && (
           <div className="flex justify-center gap-2 mt-6">
             <button
-              onClick={() => handleSubPageChange(comment.cID, currentSubPage[comment.cID] - 1)}
+              onClick={() =>
+                handleSubPageChange(
+                  comment.cID,
+                  currentSubPage[comment.cID] - 1
+                )
+              }
               disabled={currentSubPage[comment.cID] === 1}
               className={`px-4 py-2 rounded-lg ${
-                isDarkMode 
-                  ? "bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800" 
+                isDarkMode
+                  ? "bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800"
                   : "bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100"
               } disabled:cursor-not-allowed`}
             >
               Previous
             </button>
-            
-            <span className={`px-4 py-2 ${
-              isDarkMode ? "text-gray-300" : "text-gray-700"
-            }`}>
-              Page {currentSubPage[comment.cID]} of {Math.ceil(comment._count.subComments / COMMENTS_PER_PAGE)}
+
+            <span
+              className={`px-4 py-2 ${
+                isDarkMode ? "text-gray-300" : "text-gray-700"
+              }`}
+            >
+              Page {currentSubPage[comment.cID]} of{" "}
+              {Math.ceil(comment._count.subComments / COMMENTS_PER_PAGE)}
             </span>
-            
+
             <button
-              onClick={() => handleSubPageChange(comment.cID, currentSubPage[comment.cID] + 1)}
-              disabled={currentSubPage[comment.cID] === Math.ceil(comment._count.subComments / COMMENTS_PER_PAGE)}
+              onClick={() =>
+                handleSubPageChange(
+                  comment.cID,
+                  currentSubPage[comment.cID] + 1
+                )
+              }
+              disabled={
+                currentSubPage[comment.cID] ===
+                Math.ceil(comment._count.subComments / COMMENTS_PER_PAGE)
+              }
               className={`px-4 py-2 rounded-lg ${
-                isDarkMode 
-                  ? "bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800" 
+                isDarkMode
+                  ? "bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800"
                   : "bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100"
               } disabled:cursor-not-allowed`}
             >

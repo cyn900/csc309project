@@ -71,10 +71,18 @@ export default async function handler(
 
     return res.status(200).json({ output }); // Return the output directly
   } catch (error: any) {
-    // Handle errors
+    // Handle errors and include stderr if available
     console.error("Error during code execution:", error);
-    return res
-      .status(400)
-      .json({ error: `Failed to execute code: ${error.message}` });
+
+    // Check if `stderr` exists in the error object
+    const stderr = error.stderr || "No stderr available.";
+    const message = error.message || "Failed to execute code.";
+
+    return res.status(400).json({
+      error: `Failed to execute code: ${message}`,
+      output: {
+        stderr: stderr,
+      },
+    });
   }
 }
