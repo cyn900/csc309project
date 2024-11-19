@@ -127,7 +127,7 @@ async function processPatchRequest(
   const { firstName, lastName, phoneNum } = req.body as {
     firstName?: string;
     lastName?: string;
-    phoneNum?: number;
+    phoneNum?: string;
   };
   const updateData: Record<string, any> = {};
 
@@ -150,17 +150,18 @@ async function processPatchRequest(
     updateData.lastName = lastName.trim();
   }
 
-  // Validate phoneNum as a number
-  if (phoneNum !== undefined) {
-    if (typeof phoneNum !== "number" || isNaN(phoneNum)) {
-      return res
-        .status(400)
-        .json({ message: "phoneNum must be a valid number." });
+  // Updated phoneNum validation
+  if (phoneNum !== undefined && phoneNum !== '') {
+    const phoneNumAsNumber = Number(phoneNum);
+    if (isNaN(phoneNumAsNumber)) {
+      return res.status(400).json({ message: "phoneNum must be a valid number." });
     }
-    updateData.phoneNum = phoneNum;
+    updateData.phoneNum = phoneNumAsNumber;
   }
 
-  if (req.file) updateData.avatar = `/${req.file.path}`;
+  if (req.file) {
+    updateData.avatar = req.file.path.replace(/^public\//, '/');
+  }
 
   try {
     const updatedUser = await prisma.user.update({
