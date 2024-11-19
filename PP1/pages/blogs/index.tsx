@@ -62,6 +62,9 @@ const BlogsPage = () => {
   const [isSearchExpanded, setIsSearchExpanded] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [customPageSize, setCustomPageSize] = useState("");
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportExplanation, setReportExplanation] = useState("");
+  const [reportBlogId, setReportBlogId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchBlogs = async () => {
@@ -253,6 +256,11 @@ const BlogsPage = () => {
       return;
     }
 
+    // Add confirmation dialog
+    if (!confirm("Are you sure you want to delete this blog post?")) {
+      return;
+    }
+
     try {
       const response = await axios.delete(`/api/blog/delete?bID=${blogId}`, {
         headers: { Authorization: token },
@@ -296,6 +304,62 @@ const BlogsPage = () => {
     } catch (error) {
       console.error("Error checking user permissions:", error);
       alert("Failed to verify permissions");
+    }
+  };
+
+  const handleReport = async (blogId: number) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      alert("Please log in first");
+      return;
+    }
+    
+    setReportBlogId(blogId);
+    setReportExplanation("");
+    setIsReportModalOpen(true);
+  };
+
+  const handleReportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportBlogId || !reportExplanation.trim()) return;
+
+    const token = localStorage.getItem("accessToken");
+    try {
+      await axios.post(
+        "/api/report/blog",
+        { bID: reportBlogId, explanation: reportExplanation },
+        { headers: { Authorization: token } }
+      );
+      alert("Thank you for your report. Our moderators will review it shortly.");
+      setIsReportModalOpen(false);
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        // Ask if they want to delete old report and submit new one
+        if (confirm("You have already reported this blog. Would you like to delete your old report and submit a new one?")) {
+          try {
+            // Delete old report
+            await axios.delete(`/api/report/blog?bID=${reportBlogId}`, {
+              headers: { Authorization: token }
+            });
+            
+            // Submit new report
+            await axios.post(
+              "/api/report/blog",
+              { bID: reportBlogId, explanation: reportExplanation },
+              { headers: { Authorization: token } }
+            );
+            
+            alert("Your new report has been submitted successfully.");
+            setIsReportModalOpen(false);
+          } catch (deleteError) {
+            console.error("Error updating report:", deleteError);
+            alert("Failed to update report. Please try again later.");
+          }
+        }
+      } else {
+        alert("Failed to submit report. Please try again later.");
+        console.error("Error reporting blog:", error);
+      }
     }
   };
 
@@ -610,11 +674,13 @@ const BlogsPage = () => {
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
                 <button
                   onClick={(e) => {
-                    e.stopPropagation(); // Prevent triggering the blog click
+                    e.stopPropagation();
                     handleEdit(blog);
                   }}
-                  className={`p-2 rounded-full hover:bg-blue-500 hover:text-white ${
-                    isDarkMode ? "text-gray-400" : "text-gray-600"
+                  className={`p-2 rounded-full transition-colors duration-200 ${
+                    isDarkMode 
+                      ? "text-gray-400 hover:bg-gray-700 hover:text-blue-400" 
+                      : "text-gray-600 hover:bg-gray-200 hover:text-blue-600"
                   }`}
                   title="Edit blog"
                 >
@@ -622,15 +688,31 @@ const BlogsPage = () => {
                 </button>
                 <button
                   onClick={(e) => {
-                    e.stopPropagation(); // Prevent triggering the blog click
+                    e.stopPropagation();
                     handleDelete(blog.bID);
                   }}
-                  className={`p-2 rounded-full hover:bg-red-500 hover:text-white ${
-                    isDarkMode ? "text-gray-400" : "text-gray-600"
+                  className={`p-2 rounded-full transition-colors duration-200 ${
+                    isDarkMode 
+                      ? "text-gray-400 hover:bg-gray-700 hover:text-red-400" 
+                      : "text-gray-600 hover:bg-gray-200 hover:text-red-600"
                   }`}
                   title="Delete blog"
                 >
                   <FaTrash size={16} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleReport(blog.bID);
+                  }}
+                  className={`p-2 rounded-full transition-colors duration-200 ${
+                    isDarkMode 
+                      ? "text-gray-400 hover:bg-gray-700 hover:text-yellow-400" 
+                      : "text-gray-600 hover:bg-gray-200 hover:text-yellow-600"
+                  }`}
+                  title="Report inappropriate content"
+                >
+                  <span className="text-base">⚠️</span>
                 </button>
               </div>
 
@@ -868,6 +950,56 @@ const BlogsPage = () => {
           </div>
         </div>
       </div>
+
+      {isReportModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`${
+            isDarkMode ? "bg-gray-800" : "bg-white"
+          } rounded-lg p-6 max-w-md w-full mx-4`}>
+            <h2 className={`text-xl font-semibold mb-4 ${
+              isDarkMode ? "text-white" : "text-black"
+            }`}>
+              Report Blog Post
+            </h2>
+            <form onSubmit={handleReportSubmit}>
+              <textarea
+                value={reportExplanation}
+                onChange={(e) => setReportExplanation(e.target.value)}
+                placeholder="Please provide a detailed explanation of why you're reporting this blog post. This will help our moderators review the content appropriately."
+                className={`w-full px-4 py-2 rounded-md border mb-4 min-h-[120px] ${
+                  isDarkMode
+                    ? "bg-gray-700 text-white border-gray-600"
+                    : "bg-gray-100 text-black border-gray-300"
+                }`}
+                required
+              />
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(false)}
+                  className={`px-4 py-2 rounded-md ${
+                    isDarkMode
+                      ? "bg-gray-700 hover:bg-gray-600 text-white"
+                      : "bg-gray-200 hover:bg-gray-300 text-black"
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={`px-4 py-2 rounded-md ${
+                    isDarkMode
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "bg-blue-500 hover:bg-blue-600 text-white"
+                  }`}
+                >
+                  Submit Report
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

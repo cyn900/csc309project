@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTheme } from "@/context/ThemeContext";
 import { useRouter } from "next/navigation";
+import { FaExclamationTriangle } from "react-icons/fa";
 
 interface CommentProps {
   comment: {
@@ -31,6 +32,7 @@ interface CommentProps {
   currentSubPage: number;
   maxLevel: number;
   onSubPageChange: (commentId: number, newPage: number) => void;
+  onReport: (commentId: number) => void;
 }
 
 const Comment = ({
@@ -46,6 +48,7 @@ const Comment = ({
   currentSubPage,
   onSubPageChange,
   maxLevel,
+  onReport,
 }: CommentProps) => {
   const router = useRouter();
   const [isReplying, setIsReplying] = useState(false);
@@ -117,9 +120,24 @@ const Comment = ({
           isDarkMode ? "bg-gray-800" : level > 0 ? "bg-gray-50" : "bg-gray-100"
         }`}
       >
-        <p className="mb-2">{comment.content}</p>
-        <div className="text-sm text-gray-500">
-          By{comment?.user?.firstName} {comment?.user?.lastName}
+        <div className="flex justify-between items-start">
+          <div className="flex-grow">
+            <p className="mb-2">{comment.content}</p>
+            <div className="text-sm text-gray-500">
+              By {comment?.user?.firstName} {comment?.user?.lastName}
+            </div>
+          </div>
+          <button
+            onClick={() => onReport(comment.cID)}
+            className={`p-2 rounded-full hover:bg-opacity-10 ${
+              isDarkMode 
+                ? "hover:bg-gray-300 text-gray-400 hover:text-yellow-500" 
+                : "hover:bg-gray-600 text-gray-500 hover:text-yellow-500"
+            }`}
+            title="Report comment"
+          >
+            <FaExclamationTriangle size={14} />
+          </button>
         </div>
 
         <div className="flex items-center space-x-4 mt-2">
@@ -246,7 +264,7 @@ const Comment = ({
           <div className="space-y-4 mt-4">
             {comment.subComments.map((subComment) => (
               <Comment
-                key={subComment.cID}
+                key={`${comment.cID}-${subComment.cID}-${level + 1}`}
                 comment={subComment}
                 level={level + 1}
                 onVote={onVote}
@@ -259,6 +277,7 @@ const Comment = ({
                 currentSubPage={currentSubPage}
                 onSubPageChange={onSubPageChange}
                 maxLevel={maxLevel}
+                onReport={onReport}
               />
             ))}
             {hasMoreComments && (
