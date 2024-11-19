@@ -253,6 +253,11 @@ const BlogsPage = () => {
       return;
     }
 
+    // Add confirmation dialog
+    if (!confirm("Are you sure you want to delete this blog post?")) {
+      return;
+    }
+
     try {
       const response = await axios.delete(`/api/blog/delete?bID=${blogId}`, {
         headers: { Authorization: token },

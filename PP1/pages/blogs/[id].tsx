@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
 import { useTheme } from "@/context/ThemeContext";
-import { FaArrowLeft } from "react-icons/fa";
+import { FaArrowLeft, FaEdit, FaTrash } from "react-icons/fa";
 import Comment from "../components/Comment";
 
 interface Comment {
@@ -32,6 +32,7 @@ interface Blog {
   user: {
     firstName: string;
     lastName: string;
+    uID: number;
   };
   _count: {
     upvoters: number;
@@ -443,6 +444,61 @@ const BlogDetailPage = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!blog) return;
+    
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      alert("Please log in first");
+      return;
+    }
+
+    if (window.confirm("Are you sure you want to delete this blog?")) {
+      try {
+        await axios.delete(`/api/blog/delete?bID=${blog.bID}`, {
+          headers: { Authorization: token },
+        });
+        router.push("/blogs");
+      } catch (error: any) {
+        if (error.response?.status === 403) {
+          alert("You do not have permission to delete this blog post");
+        } else {
+          alert("Failed to delete blog post");
+        }
+        console.error("Error deleting blog:", error);
+      }
+    }
+  };
+
+  const handleEdit = async () => {
+    if (!blog) return;
+    
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      alert("Please log in first");
+      return;
+    }
+
+    try {
+      const authToken = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+      const response = await axios.get("/api/user/me", {
+        headers: { Authorization: authToken },
+      });
+
+      const currentUserID = Number(response.data.user.uID);
+      const blogUserID = Number(blog.user.uID);
+
+      if (currentUserID === blogUserID) {
+        router.push(`/blogs/edit?id=${blog.bID}`);
+      } else {
+        alert("You do not have permission to edit this blog post");
+      }
+    } catch (error) {
+      console.error("Error checking user permissions:", error);
+      alert("Failed to verify permissions");
+    }
+  };
+
   useEffect(() => {
     const fetchBlogDetails = async () => {
       if (!id) return;
@@ -519,10 +575,31 @@ const BlogDetailPage = () => {
         </button>
 
         <article
-          className={`p-6 rounded-lg shadow-lg mb-8 ${
+          className={`p-6 rounded-lg shadow-lg mb-8 relative ${
             isDarkMode ? "bg-gray-800" : "bg-gray-100"
           }`}
         >
+          <div className="absolute top-4 right-4 flex gap-2">
+            <button
+              onClick={handleEdit}
+              className={`p-2 rounded-full hover:bg-blue-500 hover:text-white ${
+                isDarkMode ? "text-gray-400" : "text-gray-600"
+              }`}
+              title="Edit blog"
+            >
+              <FaEdit size={16} />
+            </button>
+            <button
+              onClick={handleDelete}
+              className={`p-2 rounded-full hover:bg-red-500 hover:text-white ${
+                isDarkMode ? "text-gray-400" : "text-gray-600"
+              }`}
+              title="Delete blog"
+            >
+              <FaTrash size={16} />
+            </button>
+          </div>
+
           <h1 className="text-3xl font-bold mb-4">{blog.title}</h1>
 
           <p className="mb-6 whitespace-pre-wrap">{blog.description}</p>
