@@ -95,6 +95,7 @@ const BlogDetailPage = () => {
   const [userData, setUserData] = useState<any>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportExplanation, setReportExplanation] = useState("");
+  const [reportingCommentId, setReportingCommentId] = useState<number | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -501,47 +502,55 @@ const BlogDetailPage = () => {
     }
   };
 
-  const handleReport = async () => {
+  const handleCommentReport = (commentId: number | null = null) => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
       alert("Please log in first");
       return;
     }
     
+    setReportingCommentId(commentId);
+    setReportExplanation("");
     setIsReportModalOpen(true);
   };
 
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!blog || !reportExplanation.trim()) return;
+    if (!reportExplanation.trim()) return;
 
     const token = localStorage.getItem("accessToken");
     try {
-      await axios.post(
-        "/api/report/blog",
-        { bID: blog.bID, explanation: reportExplanation },
-        { headers: { Authorization: token } }
-      );
+      const endpoint = reportingCommentId ? "/api/report/comment" : "/api/report/blog";
+      const payload = reportingCommentId 
+        ? { cID: reportingCommentId, explanation: reportExplanation }
+        : { bID: blog!.bID, explanation: reportExplanation };
+
+      await axios.post(endpoint, payload, { headers: { Authorization: token } });
       alert("Thank you for your report. Our moderators will review it shortly.");
       setIsReportModalOpen(false);
       setReportExplanation("");
+      setReportingCommentId(null);
     } catch (error: any) {
       if (error.response?.status === 409) {
-        if (confirm("You have already reported this blog. Would you like to delete your old report and submit a new one?")) {
+        const itemType = reportingCommentId ? "comment" : "blog";
+        if (confirm(`You have already reported this ${itemType}. Would you like to delete your old report and submit a new one?`)) {
           try {
-            await axios.delete(`/api/report/blog?bID=${blog.bID}`, {
-              headers: { Authorization: token }
-            });
+            const deleteEndpoint = reportingCommentId 
+              ? `/api/report/comment?cID=${reportingCommentId}`
+              : `/api/report/blog?bID=${blog!.bID}`;
             
-            await axios.post(
-              "/api/report/blog",
-              { bID: blog.bID, explanation: reportExplanation },
-              { headers: { Authorization: token } }
-            );
+            const endpoint = reportingCommentId ? "/api/report/comment" : "/api/report/blog";
+            const payload = reportingCommentId 
+              ? { cID: reportingCommentId, explanation: reportExplanation }
+              : { bID: blog!.bID, explanation: reportExplanation };
+
+            await axios.delete(deleteEndpoint, { headers: { Authorization: token } });
+            await axios.post(endpoint, payload, { headers: { Authorization: token } });
             
             alert("Your new report has been submitted successfully.");
             setIsReportModalOpen(false);
             setReportExplanation("");
+            setReportingCommentId(null);
           } catch (deleteError) {
             console.error("Error updating report:", deleteError);
             alert("Failed to update report. Please try again later.");
@@ -549,7 +558,7 @@ const BlogDetailPage = () => {
         }
       } else {
         alert("Failed to submit report. Please try again later.");
-        console.error("Error reporting blog:", error);
+        console.error("Error reporting:", error);
       }
     }
   };
@@ -658,7 +667,7 @@ const BlogDetailPage = () => {
               <FaTrash size={16} />
             </button>
             <button
-              onClick={handleReport}
+              onClick={() => handleCommentReport()}
               className={`p-2 rounded-full transition-colors duration-200 ${
                 isDarkMode 
                   ? "text-gray-400 hover:bg-gray-700 hover:text-yellow-400" 
@@ -764,7 +773,7 @@ const BlogDetailPage = () => {
               </button>
 
               <button
-                onClick={handleReport}
+                onClick={() => handleCommentReport(null)}
                 className={`group flex items-center space-x-1 transition-all duration-200 
                   ${isDarkMode 
                     ? "text-gray-300 hover:text-yellow-400"
@@ -843,6 +852,7 @@ const BlogDetailPage = () => {
                 comment={comment}
                 onVote={handleCommentVote}
                 onReply={handleCommentSubmit}
+                onReport={(commentId) => handleCommentReport(commentId)}
                 onLoadSubComments={handleExpandComment}
                 onLoadMore={loadMoreSubComments}
                 isExpanded={expandedComments.has(comment.cID)}
@@ -906,7 +916,7 @@ const BlogDetailPage = () => {
             <h2 className={`text-xl font-semibold mb-4 ${
               isDarkMode ? "text-white" : "text-black"
             }`}>
-              Report Blog Post
+              Report {reportingCommentId ? "Comment" : "Blog Post"}
             </h2>
             <form onSubmit={handleReportSubmit}>
               <textarea

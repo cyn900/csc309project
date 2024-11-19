@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import axios from "axios";
 import { useTheme } from "@/context/ThemeContext";
 import Comment from "../components/Comment";
-import { FaArrowLeft } from "react-icons/fa";
+import { FaArrowLeft, FaFlag } from "react-icons/fa";
 
 type Comment = {
   cID: number;
@@ -56,6 +56,9 @@ const CommentPage = () => {
     {}
   );
   const [totalPages, setTotalPages] = useState<number>(1);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportingCommentId, setReportingCommentId] = useState<number | null>(null);
+  const [reportExplanation, setReportExplanation] = useState("");
 
   useEffect(() => {
     const fetchComment = async () => {
@@ -378,6 +381,66 @@ const CommentPage = () => {
     }
   };
 
+  const handleCommentReport = async (commentId: number | null = null) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      alert("Please log in first");
+      return;
+    }
+    
+    setReportingCommentId(commentId);
+    setReportExplanation("");
+    setIsReportModalOpen(true);
+  };
+
+  const handleReportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportExplanation.trim()) return;
+
+    const token = localStorage.getItem("accessToken");
+    try {
+      await axios.post("/api/report/comment", 
+        { 
+          cID: reportingCommentId, 
+          explanation: reportExplanation 
+        }, 
+        { headers: { Authorization: token } }
+      );
+      alert("Thank you for your report. Our moderators will review it shortly.");
+      setIsReportModalOpen(false);
+      setReportExplanation("");
+      setReportingCommentId(null);
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        if (confirm("You have already reported this comment. Would you like to delete your old report and submit a new one?")) {
+          try {
+            await axios.delete(`/api/report/comment?cID=${reportingCommentId}`, 
+              { headers: { Authorization: token } }
+            );
+            await axios.post("/api/report/comment",
+              { 
+                cID: reportingCommentId, 
+                explanation: reportExplanation 
+              },
+              { headers: { Authorization: token } }
+            );
+            
+            alert("Your new report has been submitted successfully.");
+            setIsReportModalOpen(false);
+            setReportExplanation("");
+            setReportingCommentId(null);
+          } catch (deleteError) {
+            console.error("Error updating report:", deleteError);
+            alert("Failed to update report. Please try again later.");
+          }
+        }
+      } else {
+        alert("Failed to submit report. Please try again later.");
+        console.error("Error reporting:", error);
+      }
+    }
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -417,6 +480,9 @@ const CommentPage = () => {
             isDarkMode={isDarkMode}
             currentSubPage={currentSubPage[comment.cID] || 1}
             onSubPageChange={handleSubPageChange}
+            onReport={(commentId) => {
+              handleCommentReport(commentId);
+            }}
           />
         </div>
 
@@ -452,6 +518,46 @@ const CommentPage = () => {
           </div>
         )}
       </div>
+
+      {isReportModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`${isDarkMode ? "bg-gray-800" : "bg-white"} rounded-lg p-6 max-w-md w-full mx-4`}>
+            <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? "text-white" : "text-black"}`}>
+              Report Comment
+            </h2>
+            <form onSubmit={handleReportSubmit}>
+              <textarea
+                value={reportExplanation}
+                onChange={(e) => setReportExplanation(e.target.value)}
+                placeholder="Please provide a detailed explanation of why you're reporting this blog post. This will help our moderators review the content appropriately."
+                className={`w-full px-4 py-2 rounded-md border mb-4 min-h-[120px] ${
+                  isDarkMode ? "bg-gray-700 text-white border-gray-600" : "bg-gray-100 text-black border-gray-300"
+                }`}
+                required
+              />
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(false)}
+                  className={`px-4 py-2 rounded-md ${
+                    isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-200 hover:bg-gray-300 text-black"
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={`px-4 py-2 rounded-md ${
+                    isDarkMode ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-blue-500 hover:bg-blue-600 text-white"
+                  }`}
+                >
+                  Submit Report
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
