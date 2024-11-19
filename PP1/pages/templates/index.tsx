@@ -357,7 +357,6 @@ const CodeTemplateSearch: React.FC = () => {
           </>
         )}
       </div>
-      ;
     </div>
   );
 };
