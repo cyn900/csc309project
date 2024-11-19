@@ -90,14 +90,31 @@ const BlogDetailPage = () => {
   >({});
   const [totalPages, setTotalPages] = useState(1);
   const COMMENTS_PER_PAGE = 5;
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [userData, setUserData] = useState<any>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    const user = localStorage.getItem('user');
+    setAuthToken(token);
+    setUserData(user ? JSON.parse(user) : null);
+  }, []);
 
   const handleVote = async (type: "upvote" | "downvote") => {
     if (!blog) return;
 
     try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        alert("Please log in to vote");
+        return;
+      }
+
       const response = await axios.post<VoteResponse>("/api/blog/vote", {
         bID: blog.bID,
         voteType: type,
+      }, {
+        headers: { Authorization: token }
       });
 
       if (response.data.blog) {
@@ -246,53 +263,38 @@ const BlogDetailPage = () => {
       // Clear the input
       setNewComment("");
 
-      // Store current expanded state
-      const currentExpanded = new Set(expandedComments);
-
-      // Refetch comments to get the updated list with proper sorting
+      // Fetch updated comment count and recalculate total pages
+      const blogResponse = await axios.get(`/api/blog?bID=${blog?.bID}`, {
+        headers: { Authorization: token },
+      });
+      const newTotalComments = blogResponse.data.blog._count.comments;
+      const newTotalPages = Math.max(1, Math.ceil(newTotalComments / COMMENTS_PER_PAGE));
+      
+      // Update states
+      setTotalComments(newTotalComments);
+      setTotalPages(newTotalPages);
+      
+      // Fetch comments for the current page
       const commentsResponse = await axios.get(
-        `/api/blog?bID=${blog?.bID}&method=${commentSort}&page=${currentPage}&pageSize=${COMMENTS_PER_PAGE}`,
+        `/api/blog?bID=${blog?.bID}&method=${commentSort}&page=${currentPage}&pageSize=${COMMENTS_PER_PAGE}&parentId=null`,
         { headers: { Authorization: token } }
       );
 
-      // Refetch subcomments for all expanded comments
-      const updatedComments = await Promise.all(
-        commentsResponse.data.paginatedComments.map(
-          async (comment: Comment) => {
-            if (currentExpanded.has(comment.cID)) {
-              const subResponse = await axios.get(
-                `/api/comment?cID=${comment.cID}&page=1&pageSize=${COMMENTS_PER_PAGE}`,
-                { headers: { Authorization: token } }
-              );
-              return { ...comment, subComments: subResponse.data };
-            }
-            return comment;
-          }
-        )
-      );
+      setComments(commentsResponse.data.paginatedComments);
 
-      setComments(updatedComments);
-
-      // Update counts
+      // Update blog comment count
       if (blog) {
         setBlog((prev) => ({
           ...prev!,
           _count: {
             ...prev!._count,
-            comments: prev!._count.comments + 1,
+            comments: newTotalComments,
           },
         }));
       }
-      setTotalComments((prev) => prev + 1);
     } catch (error: any) {
       console.error("Error submitting comment:", error);
-      if (error.response?.status >= 400) {
-        alert(
-          error.response?.data?.message ||
-            error.message ||
-            "Failed to post comment"
-        );
-      }
+      alert(error.response?.data?.message || "Failed to post comment");
     } finally {
       setIsSubmitting(false);
     }
