@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
 import axios from "axios";
+import Link from "next/link";
 
 interface Template {
   tID: number;
@@ -158,7 +159,6 @@ const CodeTemplateSearch: React.FC = () => {
           {showFilters ? "Hide Filters" : "Show Filters"}
         </button>
       </div>
-
       {/* Filters Section */}
       <div
         className={`overflow-hidden transition-all duration-300 ease-in-out ${
@@ -290,8 +290,6 @@ const CodeTemplateSearch: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Template Results */}
       <div>
         {templates.length === 0 ? (
           <p className="text-gray-400">No templates found</p>
@@ -299,11 +297,12 @@ const CodeTemplateSearch: React.FC = () => {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-4">
               {templates.map((template) => (
-                <div
+                <Link
                   key={template.tID}
+                  href={`/templates/${template.tID}`}
                   className={`${
                     isDarkMode ? "bg-gray-800" : "bg-gray-100"
-                  } p-4 rounded-lg shadow-lg`}
+                  } p-4 rounded-lg shadow-lg hover:bg-gray-200 transition`}
                 >
                   <h3 className="text-xl font-semibold">{template.title}</h3>
                   <p className="text-gray-400 mt-2">{template.explanation}</p>
@@ -323,7 +322,7 @@ const CodeTemplateSearch: React.FC = () => {
                       {template.user.lastName} ({template.user.email})
                     </p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
 
@@ -358,6 +357,7 @@ const CodeTemplateSearch: React.FC = () => {
           </>
         )}
       </div>
+      ;
     </div>
   );
 };
