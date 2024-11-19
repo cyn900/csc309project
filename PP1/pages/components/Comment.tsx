@@ -112,7 +112,7 @@ const Comment = ({
       }`}>
         <p className="mb-2">{comment.content}</p>
         <div className="text-sm text-gray-500">
-          By{comment?.user?.firstName} {comment?.user?.lastName}
+          By {comment?.user?.firstName} {comment?.user?.lastName}
         </div>
 
         <div className="flex items-center space-x-4 mt-2">
