@@ -1,6 +1,6 @@
 import { useTheme } from "../../context/ThemeContext";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
 interface User {
@@ -16,6 +16,7 @@ const Navbar: React.FC = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const getInitials = (firstName?: string, lastName?: string) => {
     if (!firstName || !lastName) return "?";
@@ -97,6 +98,19 @@ const Navbar: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
@@ -117,7 +131,7 @@ const Navbar: React.FC = () => {
 
     if (user && user.firstName && user.lastName) {
       return (
-        <div className="relative">
+        <div className="relative" ref={profileRef}>
           <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
