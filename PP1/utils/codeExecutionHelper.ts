@@ -13,24 +13,61 @@ type Language = "javascript" | "python" | "java" | "c" | "cpp";
 
 /**
  * Executes interpreted code for languages like JavaScript or Python.
- * @param command Command to execute the code.
+ * @param language Programming language (e.g., javascript, python).
+ * @param code Code to execute.
  * @param inputs Input to pass to the program.
  * @param timeout Maximum execution time in milliseconds.
  * @returns Promise resolving to the output and error.
  */
 const executeInterpretedCode = (
-  command: string,
+  language: string,
+  code: string | string[], // Allow code to be a string or array
   inputs: string[] = [],
   timeout: number = 10000
 ): Promise<ExecutionResult> => {
   return new Promise((resolve, reject) => {
-    const process = spawn(command, { shell: true });
+    const normalizedLanguage = (() => {
+      if (language.startsWith("python3")) return "python";
+      if (language.startsWith("node") || language.startsWith("javascript"))
+        return "javascript";
+      return language;
+    })();
+
+    const containerName = `code-runner-${normalizedLanguage}-${uuidv4()}`;
+    const tempDir = path.join(__dirname, "temp");
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+
+    const extension =
+      normalizedLanguage === "javascript" ? "js" : normalizedLanguage;
+    const filePath = path.join(tempDir, `main.${extension}`);
+
+    // Convert code to a string if it's not already
+    fs.writeFileSync(
+      filePath,
+      Array.isArray(code) ? code.join("\n") : String(code)
+    );
+
+    const runCommand = [
+      "docker",
+      "run",
+      "--rm",
+      "--name",
+      containerName,
+      "-v",
+      `${tempDir}:/app`,
+      `${normalizedLanguage}-image`,
+      `${
+        normalizedLanguage === "javascript" ? "node" : normalizedLanguage
+      } /app/main.${extension}`,
+    ];
+
+    const process = spawn(runCommand.join(" "), { shell: true });
 
     let output = "";
     let errorOutput = "";
 
     const timer = setTimeout(() => {
-      process.kill(); // Terminate the process if timeout is reached
+      process.kill();
       reject({
         stdout: output.trim(),
         stderr: errorOutput.trim(),
@@ -38,16 +75,12 @@ const executeInterpretedCode = (
       });
     }, timeout);
 
-    process.stdout.on("data", (data) => {
-      output += data.toString();
-    });
-
-    process.stderr.on("data", (data) => {
-      errorOutput += data.toString();
-    });
+    process.stdout.on("data", (data) => (output += data.toString()));
+    process.stderr.on("data", (data) => (errorOutput += data.toString()));
 
     process.on("close", (code) => {
       clearTimeout(timer);
+      fs.unlinkSync(filePath);
       if (code !== 0) {
         return reject({
           stdout: output.trim(),
@@ -83,128 +116,113 @@ const executeCompiledCode = (
 ): Promise<ExecutionResult> => {
   return new Promise((resolve, reject) => {
     const tempDir = path.join(__dirname, "temp");
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir);
-    }
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+
+    // Determine file extension based on language
+    const extensionMap: { [key in Language]: string } = {
+      c: "c",
+      cpp: "cpp",
+      java: "java",
+      javascript: "js",
+      python: "py",
+    };
+    const extension = extensionMap[language];
 
     const fileName = `program-${uuidv4()}`;
-    let filePath: string,
-      compileCommand: string,
-      runCommand: string,
-      javaClassName: string;
+    const filePath = path.join(tempDir, `${fileName}.${extension}`);
 
-    switch (language) {
-      case "java":
-        javaClassName = `Main${uuidv4().replace(/-/g, "")}`;
-        filePath = path.join(tempDir, `${javaClassName}.java`);
-        code = code.replace(
-          /public class Main/,
-          `public class ${javaClassName}`
-        );
-        compileCommand = `javac ${filePath}`;
-        runCommand = `java -cp ${tempDir} ${javaClassName}`;
-        break;
-      case "c":
-        filePath = path.join(tempDir, `${fileName}.c`);
-        compileCommand = `gcc ${filePath} -o ${tempDir}/${fileName}`;
-        runCommand = `${tempDir}/${fileName}`;
-        break;
-      case "cpp":
-        filePath = path.join(tempDir, `${fileName}.cpp`);
-        compileCommand = `g++ ${filePath} -o ${tempDir}/${fileName}`;
-        runCommand = `${tempDir}/${fileName}`;
-        break;
-      default:
-        return reject({
-          stdout: "",
-          stderr: "",
-          message: "Unsupported compiled language",
-        });
+    // Ensure `code` is a valid string before writing
+    fs.writeFileSync(filePath, Array.isArray(code) ? code.join("\n") : code);
+
+    const compileCommand =
+      language === "java"
+        ? `javac /app/${fileName}.java`
+        : language === "c" || language === "cpp"
+        ? `gcc -o /app/program /app/${fileName}.${extension}`
+        : null;
+
+    const executeCommand =
+      language === "java"
+        ? `java -cp /app ${fileName}`
+        : language === "c" || language === "cpp"
+        ? `/app/program`
+        : null;
+
+    if (!compileCommand || !executeCommand) {
+      return reject(new Error(`Unsupported language: ${language}`));
     }
 
-    fs.writeFileSync(filePath, code);
+    console.log(
+      "Compiling Docker command:",
+      ["docker", "run", compileCommand].join(" ")
+    );
 
-    const compileProcess = spawn(compileCommand, { shell: true });
-
-    let compileErrorOutput = "";
-
-    const compileTimer = setTimeout(() => {
-      compileProcess.kill();
-      reject({
-        stdout: "",
-        stderr: compileErrorOutput.trim(),
-        message: "Compilation timed out",
-      });
-    }, timeout);
-
-    compileProcess.stderr.on("data", (data) => {
-      compileErrorOutput += data.toString();
-    });
+    const compileProcess = spawn("docker", [
+      "run",
+      "--rm",
+      "--read-only",
+      "--cap-drop=ALL",
+      "-v",
+      `${tempDir}:/app`,
+      `${language}-image`,
+      compileCommand,
+    ]);
 
     compileProcess.on("close", (code) => {
-      clearTimeout(compileTimer);
       if (code !== 0) {
-        return reject({
-          stdout: "",
-          stderr: compileErrorOutput.trim(),
-          message: "Compilation failed.",
-        });
-      }
+        reject(new Error("Compilation failed."));
+      } else {
+        console.log(
+          "Running execution command:",
+          ["docker", "run", executeCommand].join(" ")
+        );
 
-      const runProcess = spawn(runCommand, { shell: true });
+        const executeProcess = spawn("docker", [
+          "run",
+          "--rm",
+          "--read-only",
+          "--cap-drop=ALL",
+          "-v",
+          `${tempDir}:/app`,
+          `${language}-image`,
+          executeCommand,
+        ]);
 
-      let output = "";
-      let errorOutput = "";
+        let output = "";
+        let errorOutput = "";
 
-      const runTimer = setTimeout(() => {
-        runProcess.kill();
-        reject({
-          stdout: output.trim(),
-          stderr: errorOutput.trim(),
-          message: "Execution timed out",
-        });
-      }, timeout);
-
-      runProcess.stdout.on("data", (data) => {
-        output += data.toString();
-      });
-
-      runProcess.stderr.on("data", (data) => {
-        errorOutput += data.toString();
-      });
-
-      runProcess.on("close", (code) => {
-        clearTimeout(runTimer);
-        // Clean up temporary files
-        fs.unlinkSync(filePath);
-        if (language === "java") {
-          const classFilePath = path.join(tempDir, `${javaClassName}.class`);
-          if (fs.existsSync(classFilePath)) {
-            fs.unlinkSync(classFilePath);
-          }
-        } else {
-          const compiledFilePath = path.join(tempDir, fileName);
-          if (fs.existsSync(compiledFilePath)) {
-            fs.unlinkSync(compiledFilePath);
-          }
-        }
-
-        if (code !== 0) {
-          return reject({
+        const timer = setTimeout(() => {
+          executeProcess.kill();
+          reject({
             stdout: output.trim(),
             stderr: errorOutput.trim(),
-            message: `Execution error: ${
-              errorOutput.trim() || `Process exited with code ${code}`
-            }`,
+            message: "Execution timed out",
           });
-        }
-        resolve({ stdout: output.trim(), stderr: errorOutput.trim() });
-      });
+        }, timeout);
 
-      if (inputs.length > 0) {
-        runProcess.stdin.write(inputs.join("\n") + "\n");
+        executeProcess.stdout.on("data", (data) => (output += data.toString()));
+        executeProcess.stderr.on(
+          "data",
+          (data) => (errorOutput += data.toString())
+        );
+
+        executeProcess.on("close", (execCode) => {
+          fs.unlinkSync(filePath);
+          clearTimeout(timer);
+
+          if (execCode !== 0) {
+            reject({
+              stdout: output.trim(),
+              stderr: errorOutput.trim(),
+              message: `Execution error: ${
+                errorOutput.trim() || `Process exited with code ${execCode}`
+              }`,
+            });
+          } else {
+            resolve({ stdout: output.trim(), stderr: errorOutput.trim() });
+          }
+        });
       }
-      runProcess.stdin.end();
     });
   });
 };
