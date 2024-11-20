@@ -11,7 +11,7 @@ const CreateTemplate: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
-  const { isDarkMode, toggleTheme } = useTheme();
+  const { isDarkMode } = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +25,7 @@ const CreateTemplate: React.FC = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`, // Adjust token retrieval logic if needed
+          Authorization: `${localStorage.getItem("accessToken")}`, // Adjust token retrieval logic if needed
         },
         body: JSON.stringify({
           title,
@@ -42,7 +42,7 @@ const CreateTemplate: React.FC = () => {
       }
 
       setSuccess("Template created successfully!");
-      setTimeout(() => router.push("/templates"), 2000); // Redirect after 2 seconds
+      setTimeout(() => router.push("/templates"), 1000); // Redirect after 2 seconds
     } catch (err: any) {
       setError(err.message);
     }
@@ -59,11 +59,26 @@ const CreateTemplate: React.FC = () => {
           isDarkMode ? "bg-gray-800" : "bg-white"
         } rounded-lg shadow-md`}
       >
+        {/* Header Section */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Create a New Template</h1>
+          <button
+            onClick={() => router.push("/templates")}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${
+              isDarkMode
+                ? "bg-gray-700 text-white hover:bg-gray-600"
+                : "bg-gray-200 text-gray-900 hover:bg-gray-300"
+            }`}
+          >
+            Back to Templates
+          </button>
         </div>
+
+        {/* Error and Success Messages */}
         {error && <p className="mb-4 text-red-500">{error}</p>}
         {success && <p className="mb-4 text-green-500">{success}</p>}
+
+        {/* Form Section */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="title" className="block text-sm font-medium">

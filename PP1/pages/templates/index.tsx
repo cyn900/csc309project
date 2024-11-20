@@ -145,20 +145,33 @@ const CodeTemplateSearch: React.FC = () => {
         isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
       }`}
     >
-      {/* Templates Heading and Show/Hide Filters */}
+      {/* Templates Heading and Action Buttons */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Search Code Templates</h1>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`px-4 py-2 rounded-md text-sm font-medium ${
-            isDarkMode
-              ? "bg-gray-700 text-white hover:bg-gray-600"
-              : "bg-gray-200 text-black hover:bg-gray-300"
-          }`}
-        >
-          {showFilters ? "Hide Filters" : "Show Filters"}
-        </button>
+        <div className="flex gap-4">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${
+              isDarkMode
+                ? "bg-gray-700 text-white hover:bg-gray-600"
+                : "bg-gray-200 text-black hover:bg-gray-300"
+            }`}
+          >
+            {showFilters ? "Hide Filters" : "Show Filters"}
+          </button>
+          <Link
+            href="/templates/create"
+            className={`px-4 py-2 rounded-md text-sm font-medium ${
+              isDarkMode
+                ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                : "bg-indigo-500 text-white hover:bg-indigo-600"
+            }`}
+          >
+            Create Template
+          </Link>
+        </div>
       </div>
+
       {/* Filters Section */}
       <div
         className={`overflow-hidden transition-all duration-300 ease-in-out ${
@@ -248,6 +261,8 @@ const CodeTemplateSearch: React.FC = () => {
                 className={`px-3 py-1 rounded-full text-sm ${
                   searchParams.tags.includes(tag.value)
                     ? "bg-blue-500 text-white"
+                    : isDarkMode
+                    ? "bg-gray-700 text-white hover:bg-gray-600"
                     : "bg-gray-200 text-black hover:bg-gray-300"
                 }`}
               >
@@ -290,6 +305,8 @@ const CodeTemplateSearch: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Templates Grid */}
       <div>
         {templates.length === 0 ? (
           <p className="text-gray-400">No templates found</p>
