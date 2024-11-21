@@ -66,7 +66,7 @@ export default async function handler(
           error: "Command generation failed for interpreted language",
         });
       }
-      output = await executeInterpretedCode(command, input);
+      output = await executeInterpretedCode(language, code, input);
     }
 
     return res.status(200).json({ output }); // Return the output directly
