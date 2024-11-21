@@ -204,7 +204,9 @@ const TemplateDetails: React.FC = () => {
                 : "bg-blue-100 text-blue-600 hover:bg-blue-200"
             }`}
           >
-            Fork Template
+            {localStorage.getItem("accessToken")
+              ? "Fork and Save Template"
+              : "Fork"}
           </button>
         </div>
       </div>
