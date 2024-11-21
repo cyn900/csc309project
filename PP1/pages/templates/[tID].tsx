@@ -79,7 +79,7 @@ const TemplateDetails: React.FC = () => {
     }
   };
 
-  const handleFork = () => {
+  const handleFork = async () => {
     if (template) {
       const confirm = window.confirm(
         `Are you sure you want to fork and edit the template "${template.title}"?`
@@ -88,6 +88,32 @@ const TemplateDetails: React.FC = () => {
       if (confirm) {
         // Save the forked code to the CodeContext
         setCode(template.code);
+
+        const token = localStorage.getItem("accessToken");
+        if (token) {
+          try {
+            // If user is logged in, save the fork to the server
+            const forkedTemplateData = {
+              title: `Fork of ${template.title}`,
+              explanation: template.explanation,
+              code: template.code,
+              fork: true,
+              tags: template.tags.map((tag: { value: string }) => tag.value),
+            };
+
+            await axios.post(`/api/templates`, forkedTemplateData, {
+              headers: { Authorization: token },
+            });
+
+            alert("Template forked and saved successfully!");
+          } catch (error) {
+            console.error("Failed to save forked template:", error);
+            alert("An error occurred while saving the forked template.");
+          }
+        } else {
+          // If user is not logged in, just fork locally
+          alert("Template forked locally. Log in to save it.");
+        }
 
         // Redirect to the code execution page
         router.push("/code");
