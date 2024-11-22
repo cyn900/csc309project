@@ -1,14 +1,13 @@
-# Use an official GCC runtime as the base image
-FROM gcc:12
+FROM gcc:latest
 
-# Set the working directory
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy application files
-COPY . /app
+# Dynamically create main.c
+RUN echo '#include <stdio.h>\n\nint main() {\n    printf("Hello, World!\\n");\n    return 0;\n}' > main.c
 
-# Compile the C/C++ application
-RUN g++ -o app main.cpp || gcc -o app main.c
+# Compile the C application
+RUN gcc -o app main.c
 
-# Default command
+# Default command to run the application
 CMD ["./app"]

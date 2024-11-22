@@ -1,14 +1,11 @@
-# Use an official OpenJDK runtime as the base image
-FROM openjdk:17-slim
+FROM openjdk:latest
 
-# Set the working directory
 WORKDIR /app
 
-# Copy application files
-COPY . /app
+# Create a placeholder Main.java
+RUN echo "public class Main { public static void main(String[] args) { System.out.println(\"Hello, World!\"); } }" > Main.java
 
-# Compile the Java application
+# Compile the placeholder Main.java
 RUN javac Main.java
 
-# Default command
 CMD ["java", "Main"]

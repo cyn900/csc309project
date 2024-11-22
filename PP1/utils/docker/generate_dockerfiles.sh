@@ -7,7 +7,7 @@ languages=("Python" "JavaScript" "Java" "C++" "C" "C#" "Go" "TypeScript" "Ruby" 
 # Generate Dockerfiles for each programming language
 for language in "${languages[@]}"; do
   # Normalize the folder name
-  folder=$(echo "$language" | tr '[:upper:]' '[:lower:]' | tr ' ' '_')
+  folder=$(echo "$language" | tr '[:upper:]' '[:lower:]' | tr ' ' '_' | sed 's/++/pp/g' | sed 's/#/sharp/g')
 
   # Create a folder for the language if it doesn't already exist
   mkdir -p "$folder"
@@ -29,16 +29,9 @@ for language in "${languages[@]}"; do
 # Use an official Python runtime as the base image
 FROM python:3.9-slim
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Install dependencies
 RUN pip install -r requirements.txt || true
-
-# Default command
 CMD ["python"]
 EOL
       ;;
@@ -47,16 +40,9 @@ EOL
 # Use an official Node.js runtime as the base image
 FROM node:16-alpine
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Install dependencies
 RUN npm install
-
-# Default command
 CMD ["node", "index.js"]
 EOL
       ;;
@@ -65,16 +51,9 @@ EOL
 # Use an official OpenJDK runtime as the base image
 FROM openjdk:17-slim
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Compile the Java application
 RUN javac Main.java
-
-# Default command
 CMD ["java", "Main"]
 EOL
       ;;
@@ -83,16 +62,9 @@ EOL
 # Use an official GCC runtime as the base image
 FROM gcc:12
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
-COPY . /app
-
-# Compile the C/C++ application
-RUN g++ -o app main.cpp || gcc -o app main.c
-
-# Default command
+RUN echo '#include <iostream>\n\nint main() {\n    std::cout << "TESTING" << std::endl;\n    return 0;\n}' > main.cpp
+RUN g++ -o app main.cpp
 CMD ["./app"]
 EOL
       ;;
@@ -101,19 +73,10 @@ EOL
 # Use an official .NET runtime as the base image
 FROM mcr.microsoft.com/dotnet/sdk:6.0
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Restore dependencies
 RUN dotnet restore
-
-# Build the application
 RUN dotnet build -c Release -o /app/out
-
-# Default command
 CMD ["dotnet", "/app/out/YourApp.dll"]
 EOL
       ;;
@@ -122,16 +85,9 @@ EOL
 # Use an official Golang runtime as the base image
 FROM golang:1.18-alpine
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Build the application
 RUN go build -o app .
-
-# Default command
 CMD ["./app"]
 EOL
       ;;
@@ -140,16 +96,9 @@ EOL
 # Use an official Ruby runtime as the base image
 FROM ruby:3.1-slim
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Install dependencies
 RUN bundle install || true
-
-# Default command
 CMD ["ruby", "app.rb"]
 EOL
       ;;
@@ -158,13 +107,8 @@ EOL
 # Use an official PHP runtime as the base image
 FROM php:8.1-apache
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /var/www/html/
-
-# Expose port 80 for the web server
 EXPOSE 80
 EOL
       ;;
@@ -173,16 +117,9 @@ EOL
 # Use an official Swift runtime as the base image
 FROM swift:5.7
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Build the Swift application
 RUN swift build -c release
-
-# Default command
 CMD [".build/release/app"]
 EOL
       ;;
@@ -191,16 +128,9 @@ EOL
 # Use an official OpenJDK runtime as the base image
 FROM openjdk:17-slim
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Compile the Kotlin application
 RUN kotlinc main.kt -include-runtime -d app.jar
-
-# Default command
 CMD ["java", "-jar", "app.jar"]
 EOL
       ;;
@@ -209,16 +139,9 @@ EOL
 # Use an official OpenJDK runtime as the base image
 FROM openjdk:17-slim
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Compile the Scala application
 RUN scalac Main.scala
-
-# Default command
 CMD ["scala", "Main"]
 EOL
       ;;
@@ -227,13 +150,8 @@ EOL
 # Use an official Perl runtime as the base image
 FROM perl:latest
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Default command
 CMD ["perl", "main.pl"]
 EOL
       ;;
@@ -242,16 +160,9 @@ EOL
 # Use an official Rust runtime as the base image
 FROM rust:latest
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Build the Rust application
 RUN cargo build --release
-
-# Default command
 CMD ["./target/release/app"]
 EOL
       ;;
@@ -260,13 +171,8 @@ EOL
 # MATLAB runtime requires a specific MATLAB image
 FROM mathworks/matlab:r2022b
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Default command
 CMD ["matlab", "-batch", "main"]
 EOL
       ;;
@@ -275,16 +181,9 @@ EOL
 # Use an official R runtime as the base image
 FROM r-base:latest
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Install any necessary R packages
 RUN Rscript -e "install.packages('ggplot2', repos='http://cran.rstudio.com/')"
-
-# Default command
 CMD ["Rscript", "main.R"]
 EOL
       ;;
@@ -293,16 +192,9 @@ EOL
 # Use an official Haskell runtime as the base image
 FROM haskell:latest
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Compile the Haskell program
 RUN ghc -o app Main.hs
-
-# Default command
 CMD ["./app"]
 EOL
       ;;
@@ -311,16 +203,9 @@ EOL
 # Use an official Elixir runtime as the base image
 FROM elixir:latest
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Install dependencies and compile Elixir application
 RUN mix local.hex --force && mix deps.get && mix compile
-
-# Default command
 CMD ["elixir", "main.exs"]
 EOL
       ;;
@@ -329,16 +214,9 @@ EOL
 # Use an official Debian runtime as the base image
 FROM debian:latest
 
-# Set the working directory
 WORKDIR /app
-
-# Copy application files
 COPY . /app
-
-# Grant execute permissions to the main script (if required)
 RUN chmod +x main.sh
-
-# Default command
 CMD ["bash", "main.sh"]
 EOL
       ;;
