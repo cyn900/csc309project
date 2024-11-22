@@ -129,6 +129,14 @@ const executeInterpretedCode = (
  * @param timeout Maximum execution time in milliseconds.
  * @returns Promise resolving to the output and error.
  */
+/**
+ * Executes compiled code for languages like Java, C, or C++ using Docker.
+ * @param language Programming language (e.g., java, c, cpp).
+ * @param code Source code to compile and execute.
+ * @param inputs Input to pass to the program.
+ * @param timeout Maximum execution time in milliseconds.
+ * @returns Promise resolving to the output and error.
+ */
 const executeCompiledCode = (
   language: Language,
   code: string,
@@ -149,7 +157,8 @@ const executeCompiledCode = (
     };
     const extension = extensionMap[language];
 
-    const fileName = `program-${uuidv4()}`;
+    // Always use Main as the file name
+    const fileName = "Main";
     const filePath = path.join(tempDir, `${fileName}.${extension}`);
 
     // Write the source code to a file

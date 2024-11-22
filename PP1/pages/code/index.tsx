@@ -1,34 +1,36 @@
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import axios from "axios"; // Import axios for API calls
-import { useTheme } from "../../context/ThemeContext"; // Import the useTheme hook
-import { useCode } from "../../context/CodeContext"; // Import the useCode hook
+import axios from "axios";
+import { useTheme } from "../../context/ThemeContext";
+import { useCode } from "../../context/CodeContext";
 
-// Dynamically import Monaco Editor with SSR disabled
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
-  ssr: false, // Disables SSR for Monaco Editor
+  ssr: false,
 });
 
 const CodeExecution: React.FC = () => {
-  const [code, setCode] = useState<string>(""); // Code editor state
-  const [output, setOutput] = useState<string>(""); // Execution output state
-  const [error, setError] = useState<string | null>(null); // Execution error state
-  const [language, setLanguage] = useState<string>("python"); // Selected language state
-  const [input, setInput] = useState<string>(""); // Input for the code execution
+  const [code, setCode] = useState<string>("");
+  const [output, setOutput] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+  const [language, setLanguage] = useState<string>("python");
+  const [input, setInput] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false); // New loading state
 
-  const { isDarkMode } = useTheme(); // Access the current theme
-  const { code: contextCode, setCode: setContextCode } = useCode(); // Access the code from CodeContext
+  const { isDarkMode } = useTheme();
+  const { code: contextCode, setCode: setContextCode } = useCode();
 
   useEffect(() => {
-    // Retrieve the code from CodeContext when the component mounts
     if (contextCode) {
-      setCode(contextCode); // Set the editor code with the context code
-      setContextCode(""); // Clear the code from the context
+      setCode(contextCode);
+      setContextCode("");
     }
-  }, [contextCode, setContextCode]); // Dependencies ensure this runs when context changes
+  }, [contextCode, setContextCode]);
 
   const handleExecute = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true); // Show loading screen while code is executing
+    setError(null);
+    setOutput(""); // Clear previous output
 
     try {
       let formattedInput = [];
@@ -37,7 +39,7 @@ const CodeExecution: React.FC = () => {
         try {
           const parsedInput = JSON.parse(input.trim());
           if (Array.isArray(parsedInput)) {
-            formattedInput = parsedInput; // Use the parsed array
+            formattedInput = parsedInput;
           } else {
             throw new Error("Input must be a JSON array or an empty string.");
           }
@@ -50,18 +52,17 @@ const CodeExecution: React.FC = () => {
 
       const response = await axios.post("/api/code/execute", {
         code,
-        input: formattedInput, // Always send as an array
+        input: formattedInput,
         language,
       });
 
       const { stdout, stderr } = response.data.output;
       const formattedOutput = `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`;
       setOutput(formattedOutput);
-      setError(null); // Clear any previous errors
+      setError(null);
     } catch (err: any) {
       console.error("Execution failed:", err);
 
-      // Handle 400 errors specifically
       if (err.response && err.response.status === 400) {
         const { stderr } = err.response.data.output || {};
         const errorMessage = `Execution failed with backend error.\n\nSTDERR:\n${
@@ -69,9 +70,10 @@ const CodeExecution: React.FC = () => {
         }`;
         setError(errorMessage);
       } else {
-        // General error handling for other status codes
         setError(err.message || "An unexpected error occurred.");
       }
+    } finally {
+      setLoading(false); // Hide loading screen after execution is complete
     }
   };
 
@@ -82,7 +84,7 @@ const CodeExecution: React.FC = () => {
   };
 
   const handleEditorChange = (value: string | undefined) => {
-    setCode(value || ""); // Ensure code is always a string (fallback to empty string)
+    setCode(value || "");
   };
 
   return (
@@ -102,7 +104,6 @@ const CodeExecution: React.FC = () => {
         </p>
 
         <form className="mt-6" onSubmit={handleExecute}>
-          {/* Language Selector */}
           <div className="mb-6">
             <label htmlFor="language" className="block text-sm font-medium">
               Select Language
@@ -140,7 +141,6 @@ const CodeExecution: React.FC = () => {
             </select>
           </div>
 
-          {/* Input Area */}
           <div className="mb-6">
             <label htmlFor="input" className="block text-sm font-medium">
               Input (JSON Array)
@@ -154,19 +154,7 @@ const CodeExecution: React.FC = () => {
                   : "bg-white text-black border-gray-300"
               }`}
               value={input}
-              onChange={(e) => {
-                try {
-                  // Attempt to parse input as JSON to ensure it's valid
-                  const parsedInput = JSON.parse(e.target.value);
-                  if (Array.isArray(parsedInput)) {
-                    setInput(JSON.stringify(parsedInput, null, 2)); // Pretty-print JSON if valid
-                  } else {
-                    throw new Error("Input must be a JSON array.");
-                  }
-                } catch (err) {
-                  setInput(e.target.value); // Keep the raw value if parsing fails
-                }
-              }}
+              onChange={(e) => setInput(e.target.value)}
             />
             <p className="text-sm text-gray-500 mt-1">
               Provide input as a JSON array, e.g., ["PythonUser1",
@@ -174,7 +162,6 @@ const CodeExecution: React.FC = () => {
             </p>
           </div>
 
-          {/* Code Editor Area */}
           <div className="mb-6">
             <label htmlFor="code" className="block text-sm font-medium">
               Code
@@ -183,8 +170,8 @@ const CodeExecution: React.FC = () => {
               height="400px"
               language={language}
               value={code}
-              onChange={handleEditorChange} // Update state on change
-              theme={isDarkMode ? "vs-dark" : "vs-light"} // Switch Monaco theme based on mode
+              onChange={handleEditorChange}
+              theme={isDarkMode ? "vs-dark" : "vs-light"}
               options={{
                 selectOnLineNumbers: true,
                 minimap: { enabled: false },
@@ -192,7 +179,6 @@ const CodeExecution: React.FC = () => {
             />
           </div>
 
-          {/* Execute Button */}
           <button
             type="submit"
             className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -202,19 +188,30 @@ const CodeExecution: React.FC = () => {
         </form>
 
         <div className="mt-6">
-          <h2 className="text-xl font-medium">Execution Result</h2>
-          {error ? (
-            <pre className="p-4 bg-red-100 text-red-700 rounded-md mt-2 whitespace-pre-wrap">
-              Error: {error}
-            </pre>
+          {loading ? (
+            <div className="flex items-center justify-center py-6">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+              <span className="ml-4 text-lg font-semibold">Loading...</span>
+            </div>
           ) : (
-            <pre
-              className={`p-4 rounded-md mt-2 whitespace-pre-wrap ${
-                isDarkMode ? "bg-gray-700 text-white" : "bg-gray-100 text-black"
-              }`}
-            >
-              {output}
-            </pre>
+            <div>
+              <h2 className="text-xl font-medium">Execution Result</h2>
+              {error ? (
+                <pre className="p-4 bg-red-100 text-red-700 rounded-md mt-2 whitespace-pre-wrap">
+                  Error: {error}
+                </pre>
+              ) : (
+                <pre
+                  className={`p-4 rounded-md mt-2 whitespace-pre-wrap ${
+                    isDarkMode
+                      ? "bg-gray-700 text-white"
+                      : "bg-gray-100 text-black"
+                  }`}
+                >
+                  {output}
+                </pre>
+              )}
+            </div>
           )}
         </div>
       </div>
