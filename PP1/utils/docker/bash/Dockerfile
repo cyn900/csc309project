@@ -1,14 +1,20 @@
-# Use an official Debian runtime as the base image
-FROM debian:latest
+# Use Alpine Linux as the base image
+FROM alpine:latest
+
+# Install bash
+RUN apk add --no-cache bash
 
 # Set the working directory
 WORKDIR /app
 
-# Copy application files
+# Create a default main.sh file if it doesn't exist
+RUN echo '#!/bin/bash\necho "Hello from Bash!"' > main.sh
+
+# Copy application files (overwrites main.sh if provided in the context)
 COPY . /app
 
-# Grant execute permissions to the main script (if required)
+# Make sure main.sh is executable
 RUN chmod +x main.sh
 
-# Default command
-CMD ["bash", "main.sh"]
+# Default command to run the main.sh script
+CMD ["./main.sh"]

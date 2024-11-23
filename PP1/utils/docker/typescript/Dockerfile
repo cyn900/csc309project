@@ -1,14 +1,10 @@
-# Use an official Node.js runtime as the base image
-FROM node:16-alpine
+FROM node:20-alpine
+
+# Install ts-node globally
+RUN npm install -g ts-node typescript
 
 # Set the working directory
 WORKDIR /app
 
-# Copy application files
-COPY . /app
-
-# Install dependencies
-RUN npm install
-
-# Default command
-CMD ["node", "index.js"]
+# Default command to keep the container running
+CMD ["node"]

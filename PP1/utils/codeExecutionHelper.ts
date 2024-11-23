@@ -9,7 +9,21 @@ type ExecutionResult = {
   stderr: string;
 };
 
-type Language = "javascript" | "python" | "java" | "c" | "cpp";
+type Language =
+  | "javascript"
+  | "python"
+  | "java"
+  | "c"
+  | "cpp"
+  | "csharp"
+  | "go"
+  | "typescript"
+  | "ruby"
+  | "rust"
+  | "bash"
+  | "matlab"
+  | "r"
+  | "haskell";
 
 /**
  * Ensures a directory exists, creating it if necessary.
@@ -29,109 +43,109 @@ const resolveTempDir = () => {
 };
 
 /**
- * Executes interpreted code for languages like JavaScript or Python using Docker.
- * @param language Programming language (e.g., javascript, python).
+ * Executes interpreted code for languages like JavaScript, Python, etc., using Docker.
+ * @param language Programming language.
  * @param code Code to execute.
  * @param inputs Input to pass to the program.
  * @param timeout Maximum execution time in milliseconds.
  * @returns Promise resolving to the output and error.
  */
 const executeInterpretedCode = (
-  language: string,
+  language: Language,
   code: string | string[],
   inputs: string[] = [],
   timeout: number = 10000
 ): Promise<ExecutionResult> => {
   return new Promise((resolve, reject) => {
-    const normalizedLanguage = (() => {
-      if (language.startsWith("python3")) return "python";
-      if (language.startsWith("node") || language.startsWith("javascript"))
-        return "javascript";
-      return language;
-    })();
-
-    const containerName = `code-runner-${normalizedLanguage}-${uuidv4()}`;
-    const tempDir = path.join(process.cwd(), "pages/api/code/temp");
+    const tempDir = resolveTempDir();
     ensureDirectoryExists(tempDir);
 
-    const extension =
-      normalizedLanguage === "javascript" ? "js" : normalizedLanguage;
-    const filePath = path.join(tempDir, `main.${extension}`);
+    const extensionMap: { [key in Language]?: string } = {
+      javascript: "js",
+      python: "py",
+      ruby: "rb",
+      bash: "sh",
+      r: "r",
+      matlab: "m",
+      haskell: "hs",
+      typescript: "ts",
+    };
+    const extension = extensionMap[language];
 
-    // Validate the `code` parameter
-    if (!code || (Array.isArray(code) && code.length === 0)) {
-      return reject({
-        stdout: "",
-        stderr: "",
-        message: "No code provided for execution.",
-      });
+    if (!extension) {
+      return reject(
+        new Error(`Unsupported language for interpreted code: ${language}`)
+      );
     }
 
-    // Write the code to the file
-    const codeContent = Array.isArray(code) ? code.join("\n") : String(code);
+    const filePath = path.join(tempDir, `main.${extension}`);
+    const compiledPath = path.join(tempDir, `main.js`);
+    const codeContent = Array.isArray(code) ? code.join("\n") : code;
     fs.writeFileSync(filePath, codeContent);
 
-    // Log the file content for verification
-    console.log("Code to be executed:");
-    console.log(codeContent);
-    console.log(`File created at: ${filePath}`);
-    console.log("File content:");
-    console.log(fs.readFileSync(filePath, "utf-8"));
+    let command: string;
 
-    // Docker command to execute the code
-    const command = [
-      "docker",
-      "run",
-      "--rm",
-      "--name",
-      containerName,
-      "-v",
-      `${tempDir}:/app`, // Mount the temp directory
-      `${normalizedLanguage}-image`,
-      `${
-        normalizedLanguage === "python"
-          ? "python -u"
-          : normalizedLanguage === "javascript"
-          ? "node"
-          : normalizedLanguage
-      } /app/main.${extension}`,
-    ].join(" ");
+    if (language === "typescript") {
+      // Compile TypeScript to JavaScript
+      command = [
+        "docker",
+        "run",
+        "--rm",
+        "--name",
+        `code-runner-${language}-${uuidv4()}`,
+        "-v",
+        `${tempDir}:/app`,
+        `${language}-image`,
+        `/bin/sh -c "tsc /app/main.ts --outDir /app && node /app/main.js"`,
+      ].join(" ");
+    } else {
+      command = [
+        "docker",
+        "run",
+        "--rm",
+        "--name",
+        `code-runner-${language}-${uuidv4()}`,
+        "-v",
+        `${tempDir}:/app`,
+        `${language}-image`,
+        `${
+          language === "python"
+            ? "python3 -u"
+            : language === "javascript"
+            ? "node"
+            : language === "ruby"
+            ? "ruby"
+            : language === "bash"
+            ? "bash"
+            : language === "r"
+            ? "Rscript"
+            : language === "matlab"
+            ? "matlab -nodisplay -nosplash -r"
+            : language === "haskell"
+            ? "runhaskell"
+            : ""
+        } /app/main.${extension}`,
+      ].join(" ");
+    }
 
     console.log(`Executing Docker command: ${command}`);
 
     exec(command, { timeout }, (error, stdout, stderr) => {
-      console.log("Command executed:", command);
-      console.log("STDOUT:", stdout);
-      console.log("STDERR:", stderr);
-
-      // Do not delete the file; just log its path for verification
-      console.log(`Temporary file retained for debugging: ${filePath}`);
-
       if (error) {
-        console.error("Execution error:", error.message);
         return reject({
           stdout: stdout.trim(),
           stderr: stderr.trim(),
           message: `Execution error: ${error.message}`,
         });
       }
-
       resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
     });
   });
 };
 
 /**
- * Executes compiled code for languages like Java, C, or C++ using Docker.
- * @param language Programming language (e.g., java, c, cpp).
- * @param code Source code to compile and execute.
- * @param inputs Input to pass to the program.
- * @param timeout Maximum execution time in milliseconds.
- * @returns Promise resolving to the output and error.
- */
-/**
- * Executes compiled code for languages like Java, C, or C++ using Docker.
- * @param language Programming language (e.g., java, c, cpp).
+ * Executes compiled code for languages like Java, C, C++, Go, etc., using Docker.
+ * @param language Programming language.
  * @param code Source code to compile and execute.
  * @param inputs Input to pass to the program.
  * @param timeout Maximum execution time in milliseconds.
@@ -147,42 +161,56 @@ const executeCompiledCode = (
     const tempDir = resolveTempDir();
     ensureDirectoryExists(tempDir);
 
-    // Determine file extension based on language
-    const extensionMap: { [key in Language]: string } = {
+    const extensionMap: { [key in Language]?: string } = {
       c: "c",
       cpp: "cpp",
       java: "java",
-      javascript: "js",
-      python: "py",
+      csharp: "cs",
+      go: "go",
+      rust: "rs",
     };
     const extension = extensionMap[language];
 
-    // Always use Main as the file name
-    const fileName = "Main";
-    const filePath = path.join(tempDir, `${fileName}.${extension}`);
+    if (!extension) {
+      return reject(
+        new Error(`Unsupported language for compiled code: ${language}`)
+      );
+    }
 
-    // Write the source code to a file
-    fs.writeFileSync(filePath, Array.isArray(code) ? code.join("\n") : code);
+    const filePath = path.join(tempDir, `Main.${extension}`);
+    fs.writeFileSync(filePath, code);
 
     const compileCommand =
       language === "java"
-        ? `javac /app/${fileName}.java`
+        ? `javac /app/Main.${extension}`
         : language === "c" || language === "cpp"
-        ? `gcc -o /app/program /app/${fileName}.${extension}`
+        ? `gcc -o /app/program /app/Main.${extension}`
+        : language === "csharp"
+        ? `mcs -out:/app/Main.exe /app/Main.${extension}`
+        : language === "go"
+        ? `go build -o /app/program /app/Main.${extension}`
+        : language === "rust"
+        ? `rustc -o /app/program /app/Main.${extension}`
         : null;
 
     const executeCommand =
       language === "java"
-        ? `java -cp /app ${fileName}`
-        : language === "c" || language === "cpp"
+        ? `java -cp /app Main`
+        : language === "c" ||
+          language === "cpp" ||
+          language === "go" ||
+          language === "rust"
         ? `/app/program`
+        : language === "csharp"
+        ? `mono /app/Main.exe`
         : null;
 
     if (!compileCommand || !executeCommand) {
-      return reject(new Error(`Unsupported language: ${language}`));
+      return reject(
+        new Error(`Unsupported language for execution: ${language}`)
+      );
     }
 
-    // Compile and execute the code
     const compileAndRunCommand = [
       "docker",
       "run",
@@ -198,22 +226,13 @@ const executeCompiledCode = (
     console.log(`Executing Docker command: ${compileAndRunCommand}`);
 
     exec(compileAndRunCommand, { timeout }, (error, stdout, stderr) => {
-      console.log("Command executed:", compileAndRunCommand);
-      console.log("STDOUT:", stdout);
-      console.log("STDERR:", stderr);
-
-      // Do not delete the file; just log its path for verification
-      console.log(`Temporary file retained for debugging: ${filePath}`);
-
       if (error) {
-        console.error("Execution error:", error.message);
         return reject({
           stdout: stdout.trim(),
           stderr: stderr.trim(),
           message: `Execution error: ${error.message}`,
         });
       }
-
       resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
     });
   });
