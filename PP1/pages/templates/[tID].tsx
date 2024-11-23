@@ -11,7 +11,6 @@ const TemplateDetails: React.FC = () => {
   const [currentUserID, setCurrentUserID] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false); // Track if user is an admin
   const [isEditing, setIsEditing] = useState(false);
   const [editedTemplate, setEditedTemplate] = useState<any>({});
   const { isDarkMode } = useTheme();
@@ -30,9 +29,6 @@ const TemplateDetails: React.FC = () => {
           const user = userResponse.data.user;
           setCurrentUserID(user.uID);
           setCurrentUserRole(user.role);
-
-          // Set admin status
-          setIsAdmin(user.role === "admin");
         }
 
         // Fetch the template details
@@ -271,7 +267,7 @@ const TemplateDetails: React.FC = () => {
               ? "Fork and Save Template"
               : "Fork"}
           </button>
-          {(isOwner || isAdmin) && (
+          {isOwner && (
             <button
               onClick={handleDelete}
               className={`px-6 py-2 rounded-lg text-sm font-medium ${
