@@ -127,17 +127,11 @@ const CodeExecution: React.FC = () => {
               <option value="go">Go</option>
               <option value="typescript">TypeScript</option>
               <option value="ruby">Ruby</option>
-              <option value="php">PHP</option>
-              <option value="swift">Swift</option>
-              <option value="kotlin">Kotlin</option>
-              <option value="scala">Scala</option>
-              <option value="perl">Perl</option>
               <option value="rust">Rust</option>
               <option value="bash">Bash</option>
               <option value="matlab">MATLAB</option>
               <option value="r">R</option>
               <option value="haskell">Haskell</option>
-              <option value="elixir">Elixir</option>
             </select>
           </div>
 

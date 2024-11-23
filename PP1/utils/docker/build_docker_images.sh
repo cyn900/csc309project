@@ -1,12 +1,11 @@
 #!/bin/bash
 
 # Define the list of programming languages
-languages=("Python" "JavaScript" "Java" "C++" "C" "C#" "Go" "TypeScript" "Ruby" "PHP" "Swift" \
-           "Kotlin" "Scala" "Perl" "Rust" "Bash" "MATLAB" "R" "Haskell" "Elixir")
+languages=("Python" "JavaScript" "Java" "C++" "C" "C#" "Go" "TypeScript" "Ruby" "Rust" "Bash" "MATLAB" "R" "Haskell")
 
 # Iterate over each language
 for language in "${languages[@]}"; do
-  # Normalize the folder name (convert to lowercase and replace spaces/special characters)
+  # Normalize the folder name (convert to lowercase and replace special characters)
   folder=$(echo "$language" | tr '[:upper:]' '[:lower:]' | tr ' ' '_' | sed 's/++/pp/g' | sed 's/#/sharp/g')
 
   echo "Building Docker image for $language..."

@@ -1,8 +1,7 @@
 #!/bin/bash
 
 # Define the list of programming languages
-languages=("Python" "JavaScript" "Java" "C++" "C" "C#" "Go" "TypeScript" "Ruby" "PHP" "Swift" \
-           "Kotlin" "Scala" "Perl" "Rust" "Bash" "MATLAB" "R" "Haskell" "Elixir")
+languages=("Python" "JavaScript" "Java" "C++" "C" "C#" "Go" "TypeScript" "Ruby" "Rust" "Bash" "MATLAB" "R" "Haskell")
 
 # Generate Dockerfiles for each programming language
 for language in "${languages[@]}"; do
@@ -102,59 +101,6 @@ RUN bundle install || true
 CMD ["ruby", "app.rb"]
 EOL
       ;;
-    "PHP")
-      cat > "$dockerfile" <<EOL
-# Use an official PHP runtime as the base image
-FROM php:8.1-apache
-
-WORKDIR /app
-COPY . /var/www/html/
-EXPOSE 80
-EOL
-      ;;
-    "Swift")
-      cat > "$dockerfile" <<EOL
-# Use an official Swift runtime as the base image
-FROM swift:5.7
-
-WORKDIR /app
-COPY . /app
-RUN swift build -c release
-CMD [".build/release/app"]
-EOL
-      ;;
-    "Kotlin")
-      cat > "$dockerfile" <<EOL
-# Use an official OpenJDK runtime as the base image
-FROM openjdk:17-slim
-
-WORKDIR /app
-COPY . /app
-RUN kotlinc main.kt -include-runtime -d app.jar
-CMD ["java", "-jar", "app.jar"]
-EOL
-      ;;
-    "Scala")
-      cat > "$dockerfile" <<EOL
-# Use an official OpenJDK runtime as the base image
-FROM openjdk:17-slim
-
-WORKDIR /app
-COPY . /app
-RUN scalac Main.scala
-CMD ["scala", "Main"]
-EOL
-      ;;
-    "Perl")
-      cat > "$dockerfile" <<EOL
-# Use an official Perl runtime as the base image
-FROM perl:latest
-
-WORKDIR /app
-COPY . /app
-CMD ["perl", "main.pl"]
-EOL
-      ;;
     "Rust")
       cat > "$dockerfile" <<EOL
 # Use an official Rust runtime as the base image
@@ -164,6 +110,17 @@ WORKDIR /app
 COPY . /app
 RUN cargo build --release
 CMD ["./target/release/app"]
+EOL
+      ;;
+    "Bash")
+      cat > "$dockerfile" <<EOL
+# Use an official Debian runtime as the base image
+FROM debian:latest
+
+WORKDIR /app
+COPY . /app
+RUN chmod +x main.sh
+CMD ["bash", "main.sh"]
 EOL
       ;;
     "MATLAB")
@@ -196,28 +153,6 @@ WORKDIR /app
 COPY . /app
 RUN ghc -o app Main.hs
 CMD ["./app"]
-EOL
-      ;;
-    "Elixir")
-      cat > "$dockerfile" <<EOL
-# Use an official Elixir runtime as the base image
-FROM elixir:latest
-
-WORKDIR /app
-COPY . /app
-RUN mix local.hex --force && mix deps.get && mix compile
-CMD ["elixir", "main.exs"]
-EOL
-      ;;
-    "Bash")
-      cat > "$dockerfile" <<EOL
-# Use an official Debian runtime as the base image
-FROM debian:latest
-
-WORKDIR /app
-COPY . /app
-RUN chmod +x main.sh
-CMD ["bash", "main.sh"]
 EOL
       ;;
     *)
