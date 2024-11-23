@@ -9,7 +9,9 @@ const TemplateDetails: React.FC = () => {
   const { tID } = router.query;
   const [template, setTemplate] = useState<any>(null);
   const [currentUserID, setCurrentUserID] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false); // Track if user is an admin
   const [isEditing, setIsEditing] = useState(false);
   const [editedTemplate, setEditedTemplate] = useState<any>({});
   const { isDarkMode } = useTheme();
@@ -25,8 +27,12 @@ const TemplateDetails: React.FC = () => {
           const userResponse = await axios.get("/api/user/me", {
             headers: { Authorization: token },
           });
-          const userID = userResponse.data.user.uID;
-          setCurrentUserID(userID);
+          const user = userResponse.data.user;
+          setCurrentUserID(user.uID);
+          setCurrentUserRole(user.role);
+
+          // Set admin status
+          setIsAdmin(user.role === "admin");
         }
 
         // Fetch the template details
@@ -76,6 +82,63 @@ const TemplateDetails: React.FC = () => {
     } catch (error) {
       console.error("Failed to save changes:", error);
       alert("An error occurred while saving the changes.");
+    }
+  };
+
+  const handleDelete = async () => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete the template "${template.title}"? This action cannot be undone.`
+    );
+
+    if (confirmDelete) {
+      try {
+        const token = localStorage.getItem("accessToken");
+        if (!token) {
+          alert("You must be logged in to delete templates.");
+          router.push("/login");
+          return;
+        }
+
+        const tIDNumber = parseInt(tID as string, 10); // Ensure tID is a number
+        if (isNaN(tIDNumber)) {
+          alert("Invalid template ID.");
+          return;
+        }
+
+        await axios.delete(`/api/templates`, {
+          headers: { Authorization: token },
+          params: { tID: tIDNumber }, // Pass tID as a query parameter
+        });
+
+        alert("Template deleted successfully.");
+        router.push("/templates"); // Redirect after successful deletion
+      } catch (error: any) {
+        console.error("Failed to delete template:", error);
+
+        // Handle different error statuses
+        if (error.response) {
+          const { status, data } = error.response;
+
+          if (status === 400) {
+            alert(data.error || "Invalid request.");
+          } else if (status === 401) {
+            alert(
+              data.error || "You must be logged in to delete this template."
+            );
+            router.push("/login");
+          } else if (status === 403) {
+            alert(
+              data.error || "You are not authorized to delete this template."
+            );
+          } else if (status === 404) {
+            alert(data.error || "Template not found.");
+          } else {
+            alert("An error occurred while deleting the template.");
+          }
+        } else {
+          alert("An unexpected error occurred.");
+        }
+      }
     }
   };
 
@@ -208,6 +271,18 @@ const TemplateDetails: React.FC = () => {
               ? "Fork and Save Template"
               : "Fork"}
           </button>
+          {(isOwner || isAdmin) && (
+            <button
+              onClick={handleDelete}
+              className={`px-6 py-2 rounded-lg text-sm font-medium ${
+                isDarkMode
+                  ? "bg-red-600 text-white hover:bg-red-500"
+                  : "bg-red-100 text-red-600 hover:bg-red-200"
+              }`}
+            >
+              Delete
+            </button>
+          )}
         </div>
       </div>
       <div className="mt-4">
