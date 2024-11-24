@@ -59,7 +59,7 @@ export default async function handler(
         hidden: false,
       },
       include: {
-        user: true, // Include user details
+        user: true,
         _count: {
           select: {
             upvoters: true,
@@ -70,11 +70,8 @@ export default async function handler(
       },
     });
 
-    if (comments.length === 0) {
-      return res.status(404).json({
-        message: "No comments found for the provided parent comment ID.",
-      });
-    }
+    // Get total count before pagination
+    const totalCount = comments.length;
 
     // Sort comments based on the specified method
     comments.sort((a, b) => {
@@ -89,7 +86,7 @@ export default async function handler(
         case "popular":
           return b._count.upvoters - a._count.upvoters;
         default:
-          return b.cID - a.cID; // Default: Sort by comment ID
+          return b.cID - a.cID;
       }
     });
 
@@ -100,7 +97,11 @@ export default async function handler(
       startIndex + pageSizeNum
     );
 
-    res.status(200).json(paginatedComments);
+    // Return both the paginated comments and total count
+    res.status(200).json({
+      comments: paginatedComments,
+      total: totalCount,
+    });
   } catch (error: any) {
     console.error("Error retrieving comments:", error);
     res.status(500).json({

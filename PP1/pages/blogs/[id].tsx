@@ -306,65 +306,56 @@ const BlogDetailPage = () => {
 
   const handleExpandComment = async (commentId: number) => {
     try {
-      console.log("Starting handleExpandComment", { commentId });
-      let isExpanding = false;
-
-      // First update the expanded state immediately
+      // Toggle expanded state first
       setExpandedComments((prev) => {
-        console.log("Previous expanded state:", Array.from(prev));
         const newExpanded = new Set(prev);
         if (newExpanded.has(commentId)) {
-          console.log("Collapsing comment");
           newExpanded.delete(commentId);
-        } else {
-          console.log("Expanding comment");
-          newExpanded.add(commentId);
-          isExpanding = true;
+          return newExpanded;
         }
-        console.log("New expanded state:", Array.from(newExpanded));
+        
+        // If we're expanding, fetch the subcomments
+        newExpanded.add(commentId);
         return newExpanded;
       });
 
-    //   // Check if the comment is currently expanded
-    //   const isCurrentlyExpanded = expandedComments.has(commentId);
-    //   isExpanding = !isCurrentlyExpanded;
+      // If the comment already has subcomments, no need to fetch again
+      const existingComment = comments.find(c => c.cID === commentId);
+      if (existingComment && existingComment.subComments) {
+        return;
+      }
 
-    //   console.log("isExpanding:", isExpanding);
-    //   // If we're collapsing, return early
-    //   if (!isExpanding) {
-    //     console.log("Returning early - collapsing");
-    //     return;
-    //   }
-
-      // Then fetch the subcomments
+      // Fetch subcomments only if we're expanding
       const token = localStorage.getItem("accessToken");
       const headers = token ? { Authorization: token } : {};
 
-      console.log("Fetching subcomments");
       const response = await axios.get(
         `/api/comment?cID=${commentId}&page=1&pageSize=${COMMENTS_PER_PAGE}`,
         { headers }
       );
-      console.log("Subcomments response:", response.data);
 
+      // Update comments with the fetched subcomments
       setComments((prevComments) => {
-        console.log("Updating comments with subcomments");
-        isExpanding = true;
         return prevComments.map((comment) => {
           if (comment.cID === commentId) {
             return {
               ...comment,
-              subComments: response.data,
+              subComments: response.data.comments, // Note: using response.data.comments instead of response.data
             };
           }
           return comment;
         });
       });
 
-      setSubCommentPages({ ...subCommentPages, [commentId]: 1 });
+      // Initialize subcomment page
+      setSubCommentPages((prev) => ({
+        ...prev,
+        [commentId]: 1,
+      }));
     } catch (error) {
       console.error("Error fetching sub-comments:", error);
       alert("Failed to load replies");
+      // Revert expanded state on error
       setExpandedComments((prev) => {
         const newExpanded = new Set(prev);
         newExpanded.delete(commentId);
@@ -389,7 +380,10 @@ const BlogDetailPage = () => {
           if (comment.cID === commentId) {
             return {
               ...comment,
-              subComments: [...(comment.subComments || []), ...response.data],
+              subComments: [
+                ...(comment.subComments || []),
+                ...response.data.comments, // Note: using response.data.comments
+              ],
             };
           }
           return comment;
@@ -426,15 +420,13 @@ const BlogDetailPage = () => {
 
       const response = await axios.get(
         `/api/comment?cID=${commentId}&page=${page}&pageSize=${COMMENTS_PER_PAGE}`,
-        {
-          headers,
-        }
+        { headers }
       );
 
       setComments((prevComments) =>
         prevComments.map((comment) => {
           if (comment.cID === commentId) {
-            return { ...comment, subComments: response.data };
+            return { ...comment, subComments: response.data.comments }; // Note: using response.data.comments
           }
           return comment;
         })

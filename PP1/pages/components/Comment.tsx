@@ -33,6 +33,8 @@ interface CommentProps {
   maxLevel: number;
   onSubPageChange: (commentId: number, newPage: number) => void;
   onReport: (commentId: number) => void;
+  hideRepliesButton?: boolean;
+  hideShowRepliesButton?: boolean;
 }
 
 const Comment = ({
@@ -49,6 +51,8 @@ const Comment = ({
   onSubPageChange,
   maxLevel,
   onReport,
+  hideRepliesButton,
+  hideShowRepliesButton,
 }: CommentProps) => {
   const router = useRouter();
   const [isReplying, setIsReplying] = useState(false);
@@ -187,7 +191,7 @@ const Comment = ({
             </span>
           </button>
 
-          {comment._count.subComments > 0 && (
+          {comment._count.subComments > 0 && !hideShowRepliesButton && (
             <button
               onClick={handleLoadSubComments}
               className={`text-sm ${
@@ -204,16 +208,18 @@ const Comment = ({
             </button>
           )}
 
-          <button
-            onClick={handleReplyClick}
-            className={`text-sm ${
-              isDarkMode
-                ? "text-blue-400 hover:text-blue-300"
-                : "text-blue-600 hover:text-blue-500"
-            }`}
-          >
-            Reply
-          </button>
+          {!hideRepliesButton && (
+            <button
+              onClick={handleReplyClick}
+              className={`text-sm ${
+                isDarkMode
+                  ? "text-blue-400 hover:text-blue-300"
+                  : "text-blue-600 hover:text-blue-500"
+              }`}
+            >
+              Reply
+            </button>
+          )}
         </div>
 
         {isReplying && (
@@ -278,6 +284,8 @@ const Comment = ({
                 onSubPageChange={onSubPageChange}
                 maxLevel={maxLevel}
                 onReport={onReport}
+                hideRepliesButton={hideRepliesButton}
+                hideShowRepliesButton={hideShowRepliesButton}
               />
             ))}
             {hasMoreComments && (
