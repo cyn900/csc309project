@@ -8,6 +8,7 @@ interface User {
   lastName: string;
   email: string;
   avatar?: string;
+  role: string;
 }
 
 const Navbar: React.FC = () => {
@@ -226,6 +227,17 @@ const Navbar: React.FC = () => {
                   My Templates
                 </button>
               </Link>
+              {user.role === 'admin' && (
+                <Link href="/reports">
+                  <button className={`block px-4 py-2 text-sm w-full text-left ${
+                    isDarkMode
+                      ? "text-white hover:bg-gray-600"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}>
+                    Reports
+                  </button>
+                </Link>
+              )}
               <button
                 onClick={handleLogout}
                 className={`block px-4 py-2 text-sm w-full text-left ${
