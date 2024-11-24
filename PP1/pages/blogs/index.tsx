@@ -67,53 +67,63 @@ const BlogsPage = () => {
   const [reportBlogId, setReportBlogId] = useState<number | null>(null);
 
   useEffect(() => {
-    const fetchBlogs = async () => {
-      setIsLoading(true);
-      try {
-        const token = localStorage.getItem("accessToken");
-        const params = new URLSearchParams();
-
-        if (searchParams.title) params.append("title", searchParams.title);
-        if (searchParams.content)
-          params.append("content", searchParams.content);
-        if (searchParams.tags.length) {
-          searchParams.tags.forEach((tag) => {
-            params.append("tags", tag);
-          });
-        }
-        if (searchParams.templates.length) {
-          searchParams.templates.forEach((template) => {
-            params.append("templates", template);
-          });
-        }
-        params.append("method", searchParams.method);
-        params.append("page", searchParams.page.toString());
-        params.append("pageSize", searchParams.pageSize.toString());
-
-        const response = await axios.get(
-          `/api/blog/search?${params.toString()}`,
-          {
-            headers: { Authorization: token },
-          }
-        );
-
-        setBlogs(response.data.blogs || []);
-        setPagination(response.data.pagination);
-      } catch (error) {
-        console.error("Failed to fetch blogs:", error);
-        setBlogs([]);
-        setPagination({
-          currentPage: 1,
-          totalPages: 1,
-          totalItems: 0,
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchBlogs();
-  }, [searchParams]);
+  }, []);
+
+  const fetchBlogs = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      const params = new URLSearchParams();
+
+      if (searchParams.title) params.append("title", searchParams.title);
+      if (searchParams.content) params.append("content", searchParams.content);
+      if (searchParams.tags.length) {
+        searchParams.tags.forEach((tag) => {
+          params.append("tags", tag);
+        });
+      }
+      if (searchParams.templates.length) {
+        searchParams.templates.forEach((template) => {
+          params.append("templates", template);
+        });
+      }
+      params.append("method", searchParams.method);
+      params.append("page", searchParams.page.toString());
+      params.append("pageSize", searchParams.pageSize.toString());
+
+      const response = await axios.get(`/api/blog/search?${params.toString()}`, {
+        headers: { Authorization: token },
+      });
+
+      setBlogs(response.data.blogs || []);
+      setPagination(response.data.pagination);
+    } catch (error) {
+      console.error("Failed to fetch blogs:", error);
+      setBlogs([]);
+      setPagination({
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchParams((prev) => ({ ...prev, page: 1 }));
+    fetchBlogs();
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setSearchParams((prev) => ({
+      ...prev,
+      page: newPage,
+    }));
+    fetchBlogs();
+  };
 
   useEffect(() => {
     const fetchTags = async () => {
@@ -155,11 +165,6 @@ const BlogsPage = () => {
         : [...prev.tags, tagValue],
       page: 1, // Reset page when changing filters
     }));
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSearchParams((prev) => ({ ...prev, page: 1 })); // Reset to first page on new search
   };
 
   const handleTemplateInput = async (
@@ -226,13 +231,6 @@ const BlogsPage = () => {
       console.error("Failed to vote:", error);
       alert("Failed to register vote");
     }
-  };
-
-  const handlePageChange = (newPage: number) => {
-    setSearchParams((prev) => ({
-      ...prev,
-      page: newPage,
-    }));
   };
 
   const handleCustomPageSize = (e: React.KeyboardEvent<HTMLInputElement>) => {
