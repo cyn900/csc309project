@@ -286,7 +286,7 @@ const handleUpdate = isLoggedIn(
       req.body as TemplateRequestBody;
 
     if (typeof tID !== "number") {
-      return res.status(400).json({ error: "Template ID must be a number." });
+      return res.status(410).json({ error: "Template ID must be a number." });
     }
 
     try {
