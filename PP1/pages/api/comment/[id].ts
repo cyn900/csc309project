@@ -28,7 +28,7 @@ export default async function handler(
     const userClaims = verifyToken(authorizationHeader) as UserClaims | null;
     if (userClaims?.useremail) {
       const user = await prisma.user.findUnique({
-        where: { email: userClaims.useremail },
+        where: { email: userClaims.useremail},
       });
       if (user) {
         userId = user.uID;
@@ -50,7 +50,7 @@ export default async function handler(
     });
 
     const comment = await prisma.comment.findUnique({
-      where: { cID: commentId },
+      where: { cID: commentId, hidden: false },
       include: {
         user: {
           select: {

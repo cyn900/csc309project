@@ -379,11 +379,6 @@ const Reports = () => {
                             Comment
                           </h3>
                         </Link>
-                        {item.hidden && (
-                          <span className="text-sm font-normal text-red-500">
-                            (Hidden)
-                          </span>
-                        )}
                       </div>
                       <p className={`mb-2 line-clamp-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                         {item.content}
