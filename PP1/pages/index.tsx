@@ -54,16 +54,6 @@ const ScriptoriumLandingPage: React.FC = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            <Link href="/code">
-              <button className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transform transition hover:scale-105">
-                Try Code Runner
-              </button>
-            </Link>
-            <Link href="/blogs">
-              <button className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transform transition hover:scale-105">
-                Explore Blogs
-              </button>
-            </Link>
           </motion.div>
         </motion.div>
       </section>
