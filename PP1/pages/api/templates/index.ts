@@ -42,7 +42,7 @@ const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
   if (tID) {
     try {
       const template = await prisma.template.findUnique({
-        where: { tID: parseInt(tID, 10) },
+        where: { tID: tID },
         include: {
           tags: true,
           user: true,
