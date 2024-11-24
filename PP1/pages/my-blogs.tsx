@@ -38,6 +38,7 @@ const MyBlogs = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const pageSize = 5;
 
   useEffect(() => {
@@ -58,6 +59,7 @@ const MyBlogs = () => {
 
         setBlogs(response.data.blogs);
         setTotalPages(Math.ceil(response.data.totalCount / pageSize));
+        setTotalCount(response.data.totalCount);
       } catch (error) {
         console.error('Error fetching blogs:', error);
       } finally {
@@ -219,7 +221,7 @@ const MyBlogs = () => {
                 <span className="font-medium">
                   {Math.min(currentPage * pageSize, totalPages * pageSize)}
                 </span>{" "}
-                of <span className="font-medium">{totalPages * pageSize}</span>{" "}
+                of <span className="font-medium">{totalCount}</span>{" "}
                 results
               </p>
             </div>
