@@ -67,6 +67,13 @@ export default async function handler(
       include: {
         tags: true, // Include tags for each blog
         templates: true, // Include templates for each blog
+        _count: {
+          select: {
+            upvoters: true,
+            downvoters: true,
+            comments: true,
+          },
+        },
       },
       orderBy: {
         bID: "asc", // Order by blog ID in ascending order, so oldest blogs are shown first

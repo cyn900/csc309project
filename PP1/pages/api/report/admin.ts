@@ -6,6 +6,13 @@ interface UserClaims {
   useremail: string;
 }
 
+interface PaginatedResponse {
+  items: any[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -48,10 +55,12 @@ export default async function handler(
       type,
       page = "1",
       pageSize = "5",
+      filter = "all",
     } = req.query as {
       type?: string;
       page?: string;
       pageSize?: string;
+      filter?: 'all' | 'hidden' | 'visible';
     };
 
     const pageNum = parseInt(page, 10);
@@ -71,22 +80,101 @@ export default async function handler(
     const skip = (pageNum - 1) * pageSizeNum;
 
     try {
-      let data;
+      let data: PaginatedResponse;
 
       if (type === "blog") {
-        data = await prisma.blog.findMany({
-          orderBy: { blogReports: { _count: "desc" } },
-          skip,
-          take: pageSizeNum,
-          include: { _count: { select: { blogReports: true } } },
-        });
+        const whereClause = {
+          ...(filter === 'hidden' ? { hidden: true } : {}),
+          ...(filter === 'visible' ? { hidden: false } : {}),
+        };
+
+        const [items, totalCount] = await prisma.$transaction([
+          prisma.blog.findMany({
+            where: whereClause,
+            orderBy: { 
+              blogReports: { _count: 'desc' }
+            },
+            skip,
+            take: pageSizeNum,
+            select: {
+              bID: true,
+              title: true,
+              description: true,
+              hidden: true,
+              _count: { 
+                select: { 
+                  blogReports: true,
+                  comments: true,
+                  upvoters: true,
+                  downvoters: true
+                } 
+              },
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            },
+          }),
+          prisma.blog.count({
+            where: whereClause
+          })
+        ]);
+
+        data = {
+          items,
+          totalCount,
+          page: pageNum,
+          pageSize: pageSizeNum
+        };
       } else if (type === "comment") {
-        data = await prisma.comment.findMany({
-          orderBy: { commentReports: { _count: "desc" } },
-          skip,
-          take: pageSizeNum,
-          include: { _count: { select: { commentReports: true } } },
-        });
+        const whereClause = {
+          ...(filter === 'hidden' ? { hidden: true } : {}),
+          ...(filter === 'visible' ? { hidden: false } : {}),
+        };
+
+        const [items, totalCount] = await prisma.$transaction([
+          prisma.comment.findMany({
+            where: whereClause,
+            orderBy: { 
+              commentReports: { _count: 'desc' }
+            },
+            skip,
+            take: pageSizeNum,
+            include: {
+              _count: { 
+                select: { 
+                  commentReports: true,
+                  upvoters: true,
+                  downvoters: true
+                } 
+              },
+              blog: {
+                select: {
+                  bID: true,
+                  title: true
+                }
+              },
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            },
+          }),
+          prisma.comment.count({
+            where: whereClause
+          })
+        ]);
+
+        data = {
+          items,
+          totalCount,
+          page: pageNum,
+          pageSize: pageSizeNum
+        };
       } else {
         return res.status(400).json({ message: "Invalid type parameter" });
       }
