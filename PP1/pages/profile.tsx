@@ -82,6 +82,18 @@ const Profile = () => {
         },
       });
       setMessage("Profile updated successfully!");
+      
+      const updatedUserData = {
+        ...JSON.parse(localStorage.getItem("userData") || "{}"),
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        avatar: response.data.user?.avatar
+      };
+      localStorage.setItem("userData", JSON.stringify(updatedUserData));
+      
+      const event = new CustomEvent("userLoggedIn", { detail: updatedUserData });
+      window.dispatchEvent(event);
+      
       fetchProfile();
     } catch (error) {
       setMessage("Failed to update profile");
