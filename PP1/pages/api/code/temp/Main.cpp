@@ -1,7 +1,6 @@
+#include <iostream> // Include the input-output stream library
+
 int main() {
-    const char message[] = "hello\n";
-    for (const char* c = message; *c != '\0'; ++c) {
-        __builtin_putchar(*c);
-    }
-    return 0;
+    std::cout << "Hello" << std::endl; // Output "Hello" followed by a new line
+    return 0; // Return 0 to indicate successful execution
 }

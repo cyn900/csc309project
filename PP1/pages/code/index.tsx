@@ -129,7 +129,6 @@ const CodeExecution: React.FC = () => {
               <option value="ruby">Ruby</option>
               <option value="rust">Rust</option>
               <option value="bash">Bash</option>
-              <option value="matlab">MATLAB</option>
               <option value="r">R</option>
               <option value="haskell">Haskell</option>
             </select>

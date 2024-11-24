@@ -1,8 +1,14 @@
-# Use an official .NET runtime as the base image
-FROM mcr.microsoft.com/dotnet/sdk:6.0
+# Use a Mono image that includes mcs
+FROM mono:latest
 
+# Set the working directory
 WORKDIR /app
-COPY . /app
-RUN dotnet restore
-RUN dotnet build -c Release -o /app/out
-CMD ["dotnet", "/app/out/YourApp.dll"]
+
+# Dynamically create Main.cs
+RUN echo 'using System; class Program { static void Main() { Console.WriteLine("Hello, World!"); } }' > Main.cs
+
+# Compile the C# application
+RUN mcs -out:Main.exe Main.cs
+
+# Command to execute the application
+CMD ["mono", "Main.exe"]

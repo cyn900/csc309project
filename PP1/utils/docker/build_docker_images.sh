@@ -13,7 +13,7 @@ for language in "${languages[@]}"; do
   # Check if the Dockerfile exists in the corresponding folder
   if [[ -f "$folder/Dockerfile" ]]; then
     # Build the Docker image and tag it using the normalized language name
-    docker build -t "${folder}-image" "$folder" || {
+    docker build --no-cache -t "${folder}-image" "$folder" || {
       echo "Error building image for $language. Skipping."
       continue
     }

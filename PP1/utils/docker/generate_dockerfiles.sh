@@ -63,7 +63,7 @@ FROM gcc:12
 
 WORKDIR /app
 RUN echo '#include <iostream>\n\nint main() {\n    std::cout << "TESTING" << std::endl;\n    return 0;\n}' > main.cpp
-RUN g++ -o app main.cpp
+RUN g++ main.cpp -o app -L./libs -Wl,-rpath=./libs -lstdc++ $(find ./libs -name "*.so" -exec basename {} .so \; | sed 's/^/-l/')
 CMD ["./app"]
 EOL
       ;;

@@ -183,8 +183,10 @@ const executeCompiledCode = (
     const compileCommand =
       language === "java"
         ? `javac /app/Main.${extension}`
-        : language === "c" || language === "cpp"
+        : language === "c"
         ? `gcc -o /app/program /app/Main.${extension}`
+        : language === "cpp"
+        ? `g++ -o /app/program /app/Main.${extension} -lstdc++`
         : language === "csharp"
         ? `mcs -out:/app/Main.exe /app/Main.${extension}`
         : language === "go"
@@ -215,7 +217,6 @@ const executeCompiledCode = (
       "docker",
       "run",
       "--rm",
-      "--read-only",
       "--cap-drop=ALL",
       "-v",
       `${tempDir}:/app`,
