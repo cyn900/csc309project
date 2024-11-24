@@ -265,71 +265,87 @@ const Navbar: React.FC = () => {
 
   return (
     <nav
-      className={`p-4 ${
-        isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 text-black"
+      className={`sticky top-0 z-50 shadow-md ${
+        isDarkMode 
+          ? "bg-gradient-to-b from-gray-900 to-gray-800 text-white border-b border-gray-700" 
+          : "bg-gradient-to-b from-white to-gray-50 text-gray-800 border-b border-gray-200"
       }`}
     >
-      <div className="flex justify-between items-center">
-        <div className="text-xl">
-          <Link href="/">
-            <h2 className="hover:underline">Scriptorium</h2>
-          </Link>
-        </div>
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex justify-between items-center">
+          <div className="text-xl font-bold">
+            <Link href="/">
+              <h2 className="hover:text-blue-500 transition duration-200">Scriptorium</h2>
+            </Link>
+          </div>
 
-        <div className="sm:hidden">
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className={`text-white focus:outline-none ${
-              isDarkMode ? "text-white" : "text-black"
-            }`}
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <div className="sm:hidden">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className={`text-white focus:outline-none ${
+                isDarkMode ? "text-white" : "text-black"
+              }`}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              ></path>
-            </svg>
-          </button>
-        </div>
-
-        <div className="hidden sm:flex items-center space-x-4">
-          <Link href="/blogs">
-            <button className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600">
-              Blogs
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4 6h16M4 12h16M4 18h16"
+                ></path>
+              </svg>
             </button>
-          </Link>
-          <Link href="/templates">
-            <button className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600">
-              Code Templates
-            </button>
-          </Link>
-          <Link href="/code">
-            <button className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600">
-              Code Execution
-            </button>
-          </Link>
-        </div>
+          </div>
 
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={toggleTheme}
-            className={`px-4 py-2 rounded-lg ${
-              isDarkMode
-                ? "bg-blue-600 hover:bg-blue-700 text-white"
-                : "bg-gray-700 hover:bg-gray-600 text-white"
-            }`}
-          >
-            {isDarkMode ? "Light" : "Dark"}
-          </button>
+          <div className="hidden sm:flex items-center space-x-4">
+            <Link href="/blogs">
+              <button className={`px-4 py-2 rounded-lg transition duration-200 ${
+                isDarkMode 
+                  ? "hover:bg-gray-800 text-gray-300 hover:text-white" 
+                  : "hover:bg-gray-100 text-gray-700"
+              }`}>
+                Blogs
+              </button>
+            </Link>
+            <Link href="/templates">
+              <button className={`px-4 py-2 rounded-lg transition duration-200 ${
+                isDarkMode 
+                  ? "hover:bg-gray-800 text-gray-300 hover:text-white" 
+                  : "hover:bg-gray-100 text-gray-700"
+              }`}>
+                Code Templates
+              </button>
+            </Link>
+            <Link href="/code">
+              <button className={`px-4 py-2 rounded-lg transition duration-200 ${
+                isDarkMode 
+                  ? "hover:bg-gray-800 text-gray-300 hover:text-white" 
+                  : "hover:bg-gray-100 text-gray-700"
+              }`}>
+                Code Execution
+              </button>
+            </Link>
+          </div>
 
-          {renderAuthSection()}
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={toggleTheme}
+              className={`px-4 py-2 rounded-lg ${
+                isDarkMode
+                  ? "bg-blue-600 hover:bg-blue-700 text-white"
+                  : "bg-gray-700 hover:bg-gray-600 text-white"
+              }`}
+            >
+              {isDarkMode ? "Light" : "Dark"}
+            </button>
+
+            {renderAuthSection()}
+          </div>
         </div>
       </div>
 

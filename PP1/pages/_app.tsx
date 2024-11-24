@@ -2,6 +2,7 @@ import type { AppProps } from "next/app";
 import { ThemeProvider } from "../context/ThemeContext";
 import { CodeProvider } from "../context/CodeContext";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import "../styles/globals.css";
 import { useEffect } from "react";
 
@@ -42,9 +43,12 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <ThemeProvider>
       <CodeProvider>
-        <div className="min-h-screen">
+        <div className="min-h-screen flex flex-col">
           <Navbar />
-          <Component {...pageProps} />
+          <main className="flex-grow">
+            <Component {...pageProps} />
+          </main>
+          <Footer />
         </div>
       </CodeProvider>
     </ThemeProvider>

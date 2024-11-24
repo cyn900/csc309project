@@ -40,7 +40,7 @@ const Login: React.FC = () => {
           });
           window.dispatchEvent(event);
 
-          router.push("/blogs");
+          router.push("/");
         } catch (error) {
           console.error("Profile fetch failed:", error);
         }
