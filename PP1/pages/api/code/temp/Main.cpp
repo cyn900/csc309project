@@ -1,6 +1,8 @@
-#include <iostream> // Include the input-output stream library
+#include <stdio.h>
 
 int main() {
-    std::cout << "Hello" << std::endl; // Output "Hello" followed by a new line
-    return 0; // Return 0 to indicate successful execution
+    char input[100];
+    fgets(input, sizeof(input), stdin);  // Read input from the user
+    printf("You entered: %s", input);    // Print the input
+    return 0;
 }

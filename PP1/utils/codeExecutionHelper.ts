@@ -79,9 +79,17 @@ const executeInterpretedCode = (
     }
 
     const filePath = path.join(tempDir, `main.${extension}`);
-    const compiledPath = path.join(tempDir, `main.js`);
     const codeContent = Array.isArray(code) ? code.join("\n") : code;
     fs.writeFileSync(filePath, codeContent);
+
+    // Write inputs to input.txt
+    const inputFilePath = path.join(tempDir, "input.txt");
+    if (inputs.length > 0) {
+      fs.writeFileSync(inputFilePath, inputs.join("\n"));
+    } else {
+      // Ensure input.txt exists even if no inputs are provided
+      fs.writeFileSync(inputFilePath, "");
+    }
 
     let command: string;
 
@@ -96,7 +104,7 @@ const executeInterpretedCode = (
         "-v",
         `${tempDir}:/app`,
         `${language}-image`,
-        `/bin/sh -c "tsc /app/main.ts --outDir /app && node /app/main.js"`,
+        `/bin/sh -c "tsc /app/main.ts --outDir /app && node /app/main.js < /app/input.txt"`,
       ].join(" ");
     } else {
       command = [
@@ -108,7 +116,7 @@ const executeInterpretedCode = (
         "-v",
         `${tempDir}:/app`,
         `${language}-image`,
-        `${
+        `/bin/sh -c '${
           language === "python"
             ? "python3 -u"
             : language === "javascript"
@@ -124,7 +132,7 @@ const executeInterpretedCode = (
             : language === "haskell"
             ? "runhaskell"
             : ""
-        } /app/main.${extension}`,
+        } /app/main.${extension} < /app/input.txt'`,
       ].join(" ");
     }
 
@@ -178,7 +186,18 @@ const executeCompiledCode = (
     }
 
     const filePath = path.join(tempDir, `Main.${extension}`);
+
+    // Write the code to the Main.{extension} file
     fs.writeFileSync(filePath, code);
+
+    // Write inputs to input.txt
+    const inputFilePath = path.join(tempDir, "input.txt");
+    if (inputs.length > 0) {
+      fs.writeFileSync(inputFilePath, inputs.join("\n"));
+    } else {
+      // Ensure input.txt exists even if no inputs are provided
+      fs.writeFileSync(inputFilePath, "");
+    }
 
     const compileCommand =
       language === "java"
@@ -197,14 +216,14 @@ const executeCompiledCode = (
 
     const executeCommand =
       language === "java"
-        ? `java -cp /app Main`
+        ? `java -cp /app Main < /app/input.txt`
         : language === "c" ||
           language === "cpp" ||
           language === "go" ||
           language === "rust"
-        ? `/app/program`
+        ? `/app/program < /app/input.txt`
         : language === "csharp"
-        ? `mono /app/Main.exe`
+        ? `mono /app/Main.exe < /app/input.txt`
         : null;
 
     if (!compileCommand || !executeCommand) {
@@ -221,7 +240,7 @@ const executeCompiledCode = (
       "-v",
       `${tempDir}:/app`,
       `${language}-image`,
-      `/bin/sh -c "${compileCommand} && ${executeCommand}"`,
+      `/bin/sh -c '${compileCommand} && ${executeCommand}'`,
     ].join(" ");
 
     console.log(`Executing Docker command: ${compileAndRunCommand}`);

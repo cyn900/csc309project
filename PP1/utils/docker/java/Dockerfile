@@ -2,10 +2,6 @@ FROM openjdk:latest
 
 WORKDIR /app
 
-# Create a placeholder Main.java
-RUN echo "public class Main { public static void main(String[] args) { System.out.println(\"Hello, World!\"); } }" > Main.java
+# Default command to create a new Main.java, compile, and execute it
+CMD ["sh", "-c", "echo \"$CODE\" > Main.java && javac Main.java && java Main"]
 
-# Compile the placeholder Main.java
-RUN javac Main.java
-
-CMD ["java", "Main"]
