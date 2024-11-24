@@ -772,18 +772,6 @@ const BlogDetailPage = () => {
                 </span>
               </button>
 
-              <button
-                onClick={() => handleCommentReport(null)}
-                className={`group flex items-center space-x-1 transition-all duration-200 
-                  ${isDarkMode 
-                    ? "text-gray-300 hover:text-yellow-400"
-                    : "text-gray-700 hover:text-yellow-600"
-                  }`}
-                title="Report inappropriate content"
-              >
-                <span className="text-base transform transition-transform group-hover:scale-110">⚠️</span>
-              </button>
-
               <span className="flex items-center space-x-1 text-gray-500">
                 <span>💬</span>
                 <span>{blog._count.comments}</span>
