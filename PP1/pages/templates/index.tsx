@@ -57,7 +57,6 @@ const CodeTemplateSearch: React.FC = () => {
     page: 1,
     pageSize: 10,
   });
-  const [searchTriggered, setSearchTriggered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(true);
   const [customPageSize, setCustomPageSize] = useState("");
@@ -77,7 +76,6 @@ const CodeTemplateSearch: React.FC = () => {
 
   const fetchTemplates = async () => {
     setIsLoading(true);
-    setSearchTriggered(true);
     
     const queryParams = new URLSearchParams();
     
@@ -110,16 +108,22 @@ const CodeTemplateSearch: React.FC = () => {
     }
   };
 
-  // Add a new useEffect for initial load
+  // Update the initial useEffect
   useEffect(() => {
-    setSearchTriggered(true); // This will trigger the fetch
+    fetchTemplates(); // Directly call fetchTemplates instead of just setting searchTriggered
   }, []); // Empty dependency array means it runs once on mount
 
-  // Update the existing useEffect to handle both initial load and subsequent searches
+  // Remove or modify the other useEffect that was watching searchTriggered
+  // Remove this useEffect:
+  // useEffect(() => {
+  //   if (!searchTriggered) return;
+  //   fetchTemplates();
+  // }, [searchTriggered, searchParams.page, searchParams.pageSize]);
+
+  // Replace it with this one to handle pagination changes:
   useEffect(() => {
-    if (!searchTriggered) return;
     fetchTemplates();
-  }, [searchTriggered, searchParams.page, searchParams.pageSize]); // Update dependencies to include pagination changes
+  }, [searchParams.page, searchParams.pageSize]);
 
   // Update handlePreviousTemplatePage and handleNextTemplatePage to use searchParams instead of metaData
   const handlePreviousTemplatePage = () => {
@@ -143,7 +147,6 @@ const CodeTemplateSearch: React.FC = () => {
         : [...prev.tags, tagValue],
       page: 1,
     }));
-    setSearchTriggered(true);
   };
 
   // Filter available tags based on `tagSearch`
@@ -173,7 +176,6 @@ const CodeTemplateSearch: React.FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSearchParams((prev) => ({ ...prev, page: 1 }));
-    setSearchTriggered(true);
     fetchTemplates();
   };
 
@@ -382,9 +384,14 @@ const CodeTemplateSearch: React.FC = () => {
               ))}
             </div>
           </div> 
-
+        
+        <div className="flex items-center gap-4 mb-4">
           {/* Items per page input */}
-          <div className={`border rounded-lg p-2 ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}>
+          <div
+              className={`flex-1 border rounded-lg p-2 ${
+                isDarkMode ? "border-gray-700" : "border-gray-200"
+              }`}
+            >
             <div className="text-sm mb-2 font-medium">Items per page:</div>
             <div className="flex items-center gap-2 h-10">
               <input
@@ -400,17 +407,17 @@ const CodeTemplateSearch: React.FC = () => {
                     : "bg-gray-100 text-black border-gray-300"
                 }`}
               />
-              <span className={`text-sm whitespace-nowrap ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+              <span className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
                 Current: {searchParams.pageSize}
               </span>
             </div>
           </div>
 
-          {/* Add a search button in the Filters Section */}
-          <div className="mb-6">
+          {/* Search button */}
+          <div className="flex-1 flex items-center h-[72px]">
             <button
               onClick={handleSearch}
-              className={`px-4 py-2 rounded-md text-sm font-medium ${
+              className={`w-full h-10 rounded-lg ${
                 isDarkMode
                   ? "bg-blue-600 text-white hover:bg-blue-700"
                   : "bg-blue-500 text-white hover:bg-blue-600"
@@ -420,6 +427,7 @@ const CodeTemplateSearch: React.FC = () => {
             </button>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Templates Grid */}
