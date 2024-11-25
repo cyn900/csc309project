@@ -448,8 +448,17 @@ const CodeTemplateSearch: React.FC = () => {
                     isDarkMode ? "bg-gray-800" : "bg-gray-100"
                   } p-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 relative group overflow-hidden`}
                 >
+                  {/* Top right section with fork sign */}
+                  <div className="absolute top-3 right-2">
+                    {template.fork && (
+                      <span className="text-sm px-2 py-1 rounded bg-opacity-50 text-gray-400 italic" title="Forked">
+                        Fork
+                      </span>
+                    )}
+                  </div>
+
                   {/* Hover Actions */}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
+                  <div className="absolute top-2 right-20 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
                     {currentUser?.id === template.user.uID && (
                       <>
                         <Link
@@ -496,11 +505,6 @@ const CodeTemplateSearch: React.FC = () => {
 
                   {/* Template Content */}
                   <Link href={`/templates/${template.tID}`}>
-                    {template.fork && (
-                      <span className="text-sm px-2 py-1 rounded bg-opacity-50 text-gray-400 italic" title="Forked">
-                        Fork
-                      </span>
-                    )}
                     <h3 className="text-xl font-semibold mt-2">{template.title}</h3>
                     <p className={`mt-2 ${isDarkMode ? "text-gray-300" : "text-gray-600"} line-clamp-3`}>
                       {template.explanation}
