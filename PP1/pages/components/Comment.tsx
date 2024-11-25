@@ -60,6 +60,10 @@ const Comment = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubCommentsVisible, setIsSubCommentsVisible] = useState(false);
 
+  if (!comment) {
+    return null;
+  }
+
   const handleReplySubmit = async () => {
     if (!replyContent.trim()) return;
 
@@ -126,7 +130,7 @@ const Comment = ({
       >
         <div className="flex justify-between items-start">
           <div className="flex-grow">
-            <p className="mb-2">{comment.content}</p>
+            <p className="mb-2">{comment?.content}</p>
             <div className="text-sm text-gray-500">
               By {comment?.user?.firstName} {comment?.user?.lastName}
             </div>
