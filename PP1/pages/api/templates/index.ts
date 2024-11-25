@@ -28,7 +28,7 @@ const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
-  const {
+  let {
     tID,
     title,
     tags,
@@ -38,6 +38,7 @@ const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
     pageSize = "5",
   } = req.query as Partial<TemplateQueryParams>;
 
+  tID = typeof tID === "string" ? parseInt(tID, 10) : undefined;
   // Check if `tID` is provided for specific template retrieval
   if (tID) {
     try {
