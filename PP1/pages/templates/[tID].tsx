@@ -170,8 +170,8 @@ const TemplateDetails: React.FC = () => {
             alert("An error occurred while saving the forked template.");
           }
         } else {
-          // If user is not logged in, just fork locally
-          alert("Template forked locally. Log in to save it.");
+          // If user is not logged in, redirect to code excution
+          alert("Failed to save code template. User needs to log in.");
         }
 
         // Redirect to the code execution page

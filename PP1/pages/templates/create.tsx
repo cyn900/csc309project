@@ -1,24 +1,39 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useTheme } from "@/context/ThemeContext"; // Adjust the import path based on your project structure
 
 const CreateTemplate: React.FC = () => {
-  const [title, setTitle] = useState<string>("");
-  const [explanation, setExplanation] = useState<string>("");
-  const [tags, setTags] = useState<string>("");
-  const [code, setCode] = useState<string>("");
-  const [fork, setFork] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const router = useRouter();
   const { isDarkMode } = useTheme();
+  const router = useRouter();
+
+  const [formData, setFormData] = useState({
+    title: "",
+    explanation: "",
+    code: "",
+    tags: [] as string[],
+    fork: false,
+  });
+
+  const [tagInput, setTagInput] = useState("");
+  const [error, setError] = useState<string | null>("");
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [charCount, setCharCount] = useState({ title: 0, explanation: 0 });
+
+  // Update character counts
+  useEffect(() => {
+    setCharCount({
+      title: formData.title.length,
+      explanation: formData.explanation.length,
+    });
+  }, [formData.title, formData.explanation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setError("");
     setSuccess(null);
 
-    const formattedTags = tags.split(",").map((tag) => tag.trim());
+    const formattedTags = formData.tags.map((tag) => tag.trim());
 
     try {
       const response = await fetch("/api/templates", {
@@ -28,11 +43,11 @@ const CreateTemplate: React.FC = () => {
           Authorization: `${localStorage.getItem("accessToken")}`, // Adjust token retrieval logic if needed
         },
         body: JSON.stringify({
-          title,
-          explanation,
+          title: formData.title,
+          explanation: formData.explanation,
           tags: formattedTags,
-          code,
-          fork,
+          code: formData.code,
+          fork: formData.fork,
         }),
       });
 
@@ -48,116 +63,157 @@ const CreateTemplate: React.FC = () => {
     }
   };
 
+  const handleTagAdd = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && tagInput.trim()) {
+      e.preventDefault();
+      if (formData.tags.length >= 10) {
+        setError("Maximum 10 tags allowed");
+        return;
+      }
+      if (!formData.tags.includes(tagInput.trim())) {
+        setFormData((prev) => ({
+          ...prev,
+          tags: [...prev.tags, tagInput.trim()],
+        }));
+      }
+      setTagInput("");
+    }
+  };
+
   return (
-    <div
-      className={`min-h-screen flex items-center justify-center ${
-        isDarkMode ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"
-      }`}
-    >
-      <div
-        className={`w-full max-w-2xl p-6 ${
-          isDarkMode ? "bg-gray-800" : "bg-white"
-        } rounded-lg shadow-md`}
-      >
-        {/* Header Section */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Create a New Template</h1>
-          <button
-            onClick={() => router.push("/templates")}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              isDarkMode
-                ? "bg-gray-700 text-white hover:bg-gray-600"
-                : "bg-gray-200 text-gray-900 hover:bg-gray-300"
-            }`}
-          >
-            Back to Templates
-          </button>
-        </div>
+    <div className={`min-h-screen p-4 md:p-8 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"}`}>
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6">Create New Template</h1>
 
-        {/* Error and Success Messages */}
-        {error && <p className="mb-4 text-red-500">{error}</p>}
-        {success && <p className="mb-4 text-green-500">{success}</p>}
+        {error && (
+          <div className="mb-4 p-4 bg-red-500 text-white rounded-lg animate-fade-in">
+            {error}
+          </div>
+        )}
 
-        {/* Form Section */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="title" className="block text-sm font-medium">
+            <label className="block mb-2 font-medium">
               Title
+              <span className="text-sm text-gray-500 ml-2">
+                ({charCount.title}/100 characters)
+              </span>
             </label>
             <input
               type="text"
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className={`w-full mt-1 p-2 rounded focus:outline-none focus:ring ${
+              value={formData.title}
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value.slice(0, 100) }))}
+              className={`w-full p-3 rounded-lg border transition-colors duration-200 ${
                 isDarkMode
-                  ? "bg-gray-700 text-white focus:ring-indigo-500"
-                  : "bg-gray-200 text-gray-900 focus:ring-indigo-500"
+                  ? "bg-gray-800 border-gray-700 focus:border-blue-500"
+                  : "bg-white border-gray-300 focus:border-blue-400"
               }`}
+              placeholder="Enter your template title..."
               required
+              maxLength={100}
             />
           </div>
+
           <div>
-            <label htmlFor="explanation" className="block text-sm font-medium">
+            <label className="block mb-2 font-medium">
               Explanation
+              <span className="text-sm text-gray-500 ml-2">
+                ({charCount.explanation}/500 characters)
+              </span>
             </label>
             <textarea
-              id="explanation"
-              value={explanation}
-              onChange={(e) => setExplanation(e.target.value)}
-              className={`w-full mt-1 p-2 rounded focus:outline-none focus:ring ${
+              value={formData.explanation}
+              onChange={(e) => setFormData(prev => ({ ...prev, explanation: e.target.value.slice(0, 500) }))}
+              className={`w-full p-3 rounded-lg border transition-colors duration-200 ${
                 isDarkMode
-                  ? "bg-gray-700 text-white focus:ring-indigo-500"
-                  : "bg-gray-200 text-gray-900 focus:ring-indigo-500"
+                  ? "bg-gray-800 border-gray-700 focus:border-blue-500"
+                  : "bg-white border-gray-300 focus:border-blue-400"
               }`}
-              rows={4}
+              placeholder="Write your template explanation..."
+              rows={6}
               required
+              maxLength={500}
             />
           </div>
+
           <div>
-            <label htmlFor="tags" className="block text-sm font-medium">
-              Tags (comma-separated)
+            <label className="block mb-2 font-medium">
+              Tags
+              <span className="text-sm text-gray-500 ml-2">
+                (Press Enter to add, {10 - formData.tags.length} remaining)
+              </span>
             </label>
             <input
               type="text"
-              id="tags"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              className={`w-full mt-1 p-2 rounded focus:outline-none focus:ring ${
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleTagAdd}
+              className={`w-full p-3 rounded-lg border transition-colors duration-200 ${
                 isDarkMode
-                  ? "bg-gray-700 text-white focus:ring-indigo-500"
-                  : "bg-gray-200 text-gray-900 focus:ring-indigo-500"
+                  ? "bg-gray-800 border-gray-700 focus:border-blue-500"
+                  : "bg-white border-gray-300 focus:border-blue-400"
               }`}
-              required
+              placeholder="Type a tag and press Enter..."
+              disabled={formData.tags.length >= 10}
             />
+            <div className="flex flex-wrap gap-2 mt-2">
+              {formData.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm flex items-center 
+                           transition-transform duration-200 hover:scale-105"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({
+                      ...prev,
+                      tags: prev.tags.filter((t) => t !== tag),
+                    }))}
+                    className="ml-2 hover:text-red-200 transition-colors duration-200"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
           </div>
+
           <div>
-            <label htmlFor="code" className="block text-sm font-medium">
+            <label className="block mb-2 font-medium">
               Code
             </label>
             <textarea
-              id="code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className={`w-full mt-1 p-2 rounded focus:outline-none focus:ring ${
+              value={formData.code}
+              onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+              className={`w-full p-3 rounded-lg border transition-colors duration-200 font-mono ${
                 isDarkMode
-                  ? "bg-gray-700 text-white focus:ring-indigo-500"
-                  : "bg-gray-200 text-gray-900 focus:ring-indigo-500"
+                  ? "bg-gray-800 border-gray-700 focus:border-blue-500"
+                  : "bg-white border-gray-300 focus:border-blue-400"
               }`}
-              rows={6}
+              placeholder="Paste your code here..."
+              rows={10}
               required
             />
           </div>
-          <button
-            type="submit"
-            className={`w-full py-2 px-4 rounded focus:outline-none focus:ring ${
-              isDarkMode
-                ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                : "bg-indigo-500 hover:bg-indigo-600 text-white"
-            }`}
-          >
-            Create Template
-          </button>
+
+          <div className="flex gap-4 pt-4">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`px-6 py-3 bg-blue-500 text-white rounded-lg transition-all duration-200
+                        ${isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-600 hover:scale-105"}`}
+            >
+              {isSubmitting ? "Creating..." : "Create Template"}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/templates")}
+              className="px-6 py-3 bg-gray-500 text-white rounded-lg transition-all duration-200 hover:bg-gray-600 hover:scale-105"
+            >
+              Cancel
+            </button>
+          </div>
         </form>
       </div>
     </div>
