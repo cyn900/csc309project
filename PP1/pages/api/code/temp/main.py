@@ -1,1 +1,1 @@
-print("f")
+print('f')

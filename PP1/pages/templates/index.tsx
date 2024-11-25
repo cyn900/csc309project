@@ -407,9 +407,13 @@ const CodeTemplateSearch: React.FC = () => {
                     : "bg-gray-100 text-black border-gray-300"
                 }`}
               />
-              <span className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
-                Current: {searchParams.pageSize}
-              </span>
+              <span
+                  className={`text-sm whitespace-nowrap ${
+                    isDarkMode ? "text-gray-400" : "text-gray-600"
+                  }`}
+                >
+                  Current: {searchParams.pageSize}
+                </span>
             </div>
           </div>
 
