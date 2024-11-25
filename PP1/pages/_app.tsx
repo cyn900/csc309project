@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import "../styles/globals.css";
 import { useEffect } from "react";
+import { AuthProvider } from "../context/AuthContext";
 
 function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
@@ -41,17 +42,19 @@ function MyApp({ Component, pageProps }: AppProps) {
   }, []);
 
   return (
-    <ThemeProvider>
-      <CodeProvider>
-        <div className="min-h-screen flex flex-col">
-          <Navbar />
-          <main className="flex-grow">
-            <Component {...pageProps} />
-          </main>
-          <Footer />
-        </div>
-      </CodeProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <CodeProvider>
+          <div className="min-h-screen flex flex-col">
+            <Navbar />
+            <main className="flex-grow">
+              <Component {...pageProps} />
+            </main>
+            <Footer />
+          </div>
+        </CodeProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

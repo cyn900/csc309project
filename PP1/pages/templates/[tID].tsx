@@ -193,148 +193,181 @@ const TemplateDetails: React.FC = () => {
   }
 
   return (
-    <div
-      className={`p-8 min-h-screen ${
-        isDarkMode ? "bg-gray-900 text-white" : "bg-gray-50 text-black"
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">
-          {isEditing ? (
-            <input
-              type="text"
-              value={editedTemplate.title}
-              onChange={(e) =>
-                setEditedTemplate({ ...editedTemplate, title: e.target.value })
-              }
-              className={`px-3 py-2 rounded-lg w-full ${
-                isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 text-black"
-              }`}
-            />
-          ) : (
-            template.title
-          )}
-        </h1>
-        <div className="flex gap-4">
-          {isOwner && !isEditing && (
-            <button
-              onClick={() => setIsEditing(true)}
-              className={`px-6 py-2 rounded-lg text-sm font-medium ${
-                isDarkMode
-                  ? "bg-yellow-500 text-white hover:bg-yellow-400"
-                  : "bg-yellow-100 text-yellow-600 hover:bg-yellow-200"
-              }`}
-            >
-              Edit
-            </button>
-          )}
-          {isEditing && (
-            <>
+    <div className={`p-8 min-h-screen ${isDarkMode ? "bg-gray-900 text-white" : "bg-gray-50 text-black"}`}>
+      {/* Header Section */}
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold">
+            {isEditing ? (
+              <input
+                type="text"
+                value={editedTemplate.title}
+                onChange={(e) => setEditedTemplate({ ...editedTemplate, title: e.target.value })}
+                className={`px-4 py-2 rounded-lg w-full border ${
+                  isDarkMode 
+                    ? "bg-gray-800 text-white border-gray-700" 
+                    : "bg-white text-black border-gray-300"
+                }`}
+              />
+            ) : (
+              template.title
+            )}
+          </h1>
+          <div className="flex gap-3">
+            {isOwner && !isEditing && (
               <button
-                onClick={handleSaveChanges}
-                className={`px-6 py-2 rounded-lg text-sm font-medium ${
+                onClick={() => setIsEditing(true)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isDarkMode
-                    ? "bg-green-500 text-white hover:bg-green-400"
-                    : "bg-green-100 text-green-600 hover:bg-green-200"
+                    ? "bg-gray-700 text-white hover:bg-gray-600"
+                    : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
                 }`}
               >
-                Save
+                Edit Template
               </button>
-              <button
-                onClick={() => {
-                  setIsEditing(false);
-                  setEditedTemplate(template);
-                }}
-                className={`px-6 py-2 rounded-lg text-sm font-medium ${
-                  isDarkMode
-                    ? "bg-gray-600 text-white hover:bg-gray-500"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                Cancel
-              </button>
-            </>
-          )}
-          <button
-            onClick={handleFork}
-            className={`px-6 py-2 rounded-lg text-sm font-medium ${
-              isDarkMode
-                ? "bg-blue-600 text-white hover:bg-blue-500"
-                : "bg-blue-100 text-blue-600 hover:bg-blue-200"
-            }`}
-          >
-            {localStorage.getItem("accessToken")
-              ? "Fork and Save Template"
-              : "Fork"}
-          </button>
-          {isOwner && (
+            )}
+            {isEditing && (
+              <>
+                <button
+                  onClick={handleSaveChanges}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditedTemplate(template);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isDarkMode
+                      ? "bg-gray-700 text-white hover:bg-gray-600"
+                      : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
+                  }`}
+                >
+                  Cancel
+                </button>
+              </>
+            )}
             <button
-              onClick={handleDelete}
-              className={`px-6 py-2 rounded-lg text-sm font-medium ${
-                isDarkMode
-                  ? "bg-red-600 text-white hover:bg-red-500"
-                  : "bg-red-100 text-red-600 hover:bg-red-200"
-              }`}
+              onClick={handleFork}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors"
             >
-              Delete
+              {localStorage.getItem("accessToken") ? "Fork Template" : "Fork"}
             </button>
-          )}
+            {isOwner && (
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-      <div className="mt-4">
-        <p>
+
+        {/* Main Content */}
+        <div className={`rounded-lg p-6 mb-6 ${
+          isDarkMode ? "bg-gray-800" : "bg-white"
+        } shadow-sm`}>
+          {/* Author Info */}
+          <div className="mb-6 flex items-center gap-3">
+            <div className={`text-sm ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
+              Created by{" "}
+              <span className="font-medium">
+                {template.user.firstName} {template.user.lastName}
+              </span>
+            </div>
+            {template.fork && (
+              <span className={`text-sm px-2 py-1 rounded ${
+                isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
+              }`}>
+                Forked Template
+              </span>
+            )}
+          </div>
+
+          {/* Explanation */}
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3">Explanation</h2>
+            {isEditing ? (
+              <textarea
+                value={editedTemplate.explanation}
+                onChange={(e) => setEditedTemplate({ ...editedTemplate, explanation: e.target.value })}
+                className={`w-full p-4 rounded-lg border ${
+                  isDarkMode 
+                    ? "bg-gray-700 text-white border-gray-600" 
+                    : "bg-gray-50 text-black border-gray-300"
+                }`}
+                rows={5}
+              />
+            ) : (
+              <p className={`p-4 rounded-lg ${
+                isDarkMode ? "bg-gray-700" : "bg-gray-50"
+              }`}>
+                {template.explanation}
+              </p>
+            )}
+          </div>
+
+          {/* Tags */}
+          <div>
+            <h2 className="text-lg font-semibold mb-3">Tags</h2>
+            <div className="flex flex-wrap gap-2">
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editedTemplate.tags.map((tag: { value: string }) => tag.value).join(", ")}
+                  onChange={(e) =>
+                    setEditedTemplate({
+                      ...editedTemplate,
+                      tags: e.target.value.split(",").map((value: string) => ({
+                        id: Math.random().toString(),
+                        value: value.trim(),
+                      })),
+                    })
+                  }
+                  placeholder="Enter tags separated by commas"
+                  className={`w-full px-4 py-2 rounded-lg border ${
+                    isDarkMode 
+                      ? "bg-gray-700 text-white border-gray-600" 
+                      : "bg-gray-50 text-black border-gray-300"
+                  }`}
+                />
+              ) : (
+                template.tags.map((tag: { id: string; value: string }) => (
+                  <span
+                    key={tag.id}
+                    className="bg-blue-500 text-white text-sm px-3 py-1 rounded-full"
+                  >
+                    {tag.value}
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Code Section */}
+        <div className={`rounded-lg p-6 ${isDarkMode ? "bg-gray-800" : "bg-white"} shadow-sm`}>
+          <h2 className="text-lg font-semibold mb-3">Code</h2>
           {isEditing ? (
             <textarea
-              value={editedTemplate.explanation}
-              onChange={(e) =>
-                setEditedTemplate({
-                  ...editedTemplate,
-                  explanation: e.target.value,
-                })
-              }
-              className={`w-full p-3 rounded-lg ${
-                isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 text-black"
+              value={editedTemplate.code}
+              onChange={(e) => setEditedTemplate({ ...editedTemplate, code: e.target.value })}
+              className={`w-full p-4 rounded-lg border font-mono ${
+                isDarkMode 
+                  ? "bg-gray-700 text-white border-gray-600" 
+                  : "bg-gray-50 text-black border-gray-300"
               }`}
-              rows={5}
+              rows={10}
             />
           ) : (
-            template.explanation
-          )}
-        </p>
-      </div>
-      <div className="mt-6">
-        <h2 className="text-xl font-semibold">Tags:</h2>
-        <div className="flex gap-2 mt-2">
-          {isEditing ? (
-            <input
-              type="text"
-              value={editedTemplate.tags.map((tag) => tag.value).join(", ")}
-              onChange={(e) =>
-                setEditedTemplate({
-                  ...editedTemplate,
-                  tags: e.target.value.split(",").map((value) => ({
-                    id: Math.random().toString(),
-                    value: value.trim(),
-                  })),
-                })
-              }
-              className={`w-full px-3 py-2 rounded-lg ${
-                isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 text-black"
-              }`}
-            />
-          ) : (
-            template.tags.map((tag) => (
-              <span
-                key={tag.id}
-                className={`text-sm px-3 py-1 rounded-full ${
-                  isDarkMode
-                    ? "bg-blue-600 text-white"
-                    : "bg-blue-100 text-blue-600"
-                }`}
-              >
-                {tag.value}
-              </span>
-            ))
+            <pre className={`p-4 rounded-lg overflow-x-auto font-mono ${
+              isDarkMode ? "bg-gray-700" : "bg-gray-50"
+            }`}>
+              <code>{template.code}</code>
+            </pre>
           )}
         </div>
       </div>

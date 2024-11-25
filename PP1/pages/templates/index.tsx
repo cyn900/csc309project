@@ -3,6 +3,8 @@ import { useTheme } from "../../context/ThemeContext";
 import axios from "axios";
 import Link from "next/link";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/20/solid";
+import { FaTrash, FaEdit, FaCode } from "react-icons/fa";
+import { useAuth } from "@/context/AuthContext";
 
 interface Template {
   tID: number;
@@ -12,6 +14,7 @@ interface Template {
   code: string;
   fork: boolean;
   user: {
+    uID: number;
     firstName: string;
     lastName: string;
     email: string;
@@ -33,6 +36,7 @@ interface MetaData {
 
 const CodeTemplateSearch: React.FC = () => {
   const { isDarkMode } = useTheme();
+  const { currentUser } = useAuth();
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [metaData, setMetaData] = useState<MetaData>({
@@ -75,14 +79,18 @@ const CodeTemplateSearch: React.FC = () => {
     setIsLoading(true);
     setSearchTriggered(true);
     
-    const queryParams = new URLSearchParams({
-      title: searchParams.title || '',
-      explanation: searchParams.explanation || '',
-      forkedOnly: searchParams.forkedOnly.toString(),
-      tags: searchParams.tags.join(","),
-      page: searchParams.page.toString(),
-      pageSize: searchParams.pageSize.toString()
+    const queryParams = new URLSearchParams();
+    
+    if (searchParams.title) queryParams.append('title', searchParams.title);
+    if (searchParams.explanation) queryParams.append('explanation', searchParams.explanation);
+    queryParams.append('forkedOnly', searchParams.forkedOnly.toString());
+    
+    searchParams.tags.forEach(tag => {
+      queryParams.append('tags', tag);
     });
+    
+    queryParams.append('page', searchParams.page.toString());
+    queryParams.append('pageSize', searchParams.pageSize.toString());
 
     try {
       const response = await axios.get(`/api/templates?${queryParams.toString()}`);
@@ -133,8 +141,9 @@ const CodeTemplateSearch: React.FC = () => {
       tags: prev.tags.includes(tagValue)
         ? prev.tags.filter((t) => t !== tagValue)
         : [...prev.tags, tagValue],
+      page: 1,
     }));
-    setMetaData((prev) => ({ ...prev, currentPage: 1 })); // Reset to page 1 when filters change
+    setSearchTriggered(true);
   };
 
   // Filter available tags based on `tagSearch`
@@ -187,6 +196,38 @@ const CodeTemplateSearch: React.FC = () => {
         }));
         setCustomPageSize("");
         fetchTemplates();
+      }
+    }
+  };
+
+  const handleDelete = async (tID: number) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this template? This action cannot be undone."
+    );
+
+    if (confirmDelete) {
+      try {
+        const token = localStorage.getItem("accessToken");
+        if (!token) {
+          alert("You must be logged in to delete templates.");
+          return;
+        }
+
+        await axios.delete(`/api/templates`, {
+          headers: { Authorization: token },
+          params: { tID },
+        });
+
+        // Refresh the templates list
+        fetchTemplates();
+        alert("Template deleted successfully.");
+      } catch (error: any) {
+        console.error("Failed to delete template:", error);
+        if (error.response?.status === 403) {
+          alert("You don't have permission to delete this template.");
+        } else {
+          alert("An error occurred while deleting the template.");
+        }
       }
     }
   };
@@ -389,37 +430,86 @@ const CodeTemplateSearch: React.FC = () => {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-4">
               {templates.map((template) => (
-                <Link
+                <div
                   key={template.tID}
-                  href={`/templates/${template.tID}`}
                   className={`${
                     isDarkMode ? "bg-gray-800" : "bg-gray-100"
-                  } p-4 rounded-lg shadow-lg hover:bg-gray-200 transition relative`}
+                  } p-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 relative group overflow-hidden`}
                 >
-                  {template.fork && (
-                    <span className="absolute top-4 right-4 text-gray-400 italic" title="Forked">
-                      Fork
-                    </span>
-                  )}
-                  <h3 className="text-xl font-semibold">{template.title}</h3>
-                  <p className="text-gray-400 mt-2">{template.explanation}</p>
-                  <div className="flex gap-2 mt-4">
-                    {template.tags.map((tag) => (
-                      <span
-                        key={tag.id}
-                        className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full"
-                      >
-                        {tag.value}
+                  {/* Hover Actions */}
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
+                    {currentUser?.id === template.user.uID && (
+                      <>
+                        <Link
+                          href={`/templates/${template.tID}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className={`p-2 rounded-full transition-colors duration-200 ${
+                            isDarkMode 
+                              ? "text-gray-400 hover:bg-gray-700 hover:text-blue-400" 
+                              : "text-gray-600 hover:bg-gray-200 hover:text-blue-600"
+                          }`}
+                          title="Edit template"
+                        >
+                          <FaEdit size={16} />
+                        </Link>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(template.tID);
+                          }}
+                          className={`p-2 rounded-full transition-colors duration-200 ${
+                            isDarkMode 
+                              ? "text-gray-400 hover:bg-gray-700 hover:text-red-400" 
+                              : "text-gray-600 hover:bg-gray-200 hover:text-red-600"
+                          }`}
+                          title="Delete template"
+                        >
+                          <FaTrash size={16} />
+                        </button>
+                      </>
+                    )}
+                    <Link
+                      href={`/code?tID=${template.tID}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className={`p-2 rounded-full transition-colors duration-200 ${
+                        isDarkMode 
+                          ? "text-gray-400 hover:bg-gray-700 hover:text-green-400" 
+                          : "text-gray-600 hover:bg-gray-200 hover:text-green-600"
+                      }`}
+                      title="Try code"
+                    >
+                      <FaCode size={16} />
+                    </Link>
+                  </div>
+
+                  {/* Template Content */}
+                  <Link href={`/templates/${template.tID}`}>
+                    {template.fork && (
+                      <span className="text-sm px-2 py-1 rounded bg-opacity-50 text-gray-400 italic" title="Forked">
+                        Fork
                       </span>
-                    ))}
-                  </div>
-                  <div className="mt-4 text-sm text-gray-600">
-                    <p>
-                      By {template.user.firstName}{" "}
-                      {template.user.lastName}
+                    )}
+                    <h3 className="text-xl font-semibold mt-2">{template.title}</h3>
+                    <p className={`mt-2 ${isDarkMode ? "text-gray-300" : "text-gray-600"} line-clamp-3`}>
+                      {template.explanation}
                     </p>
-                  </div>
-                </Link>
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {template.tags.map((tag) => (
+                        <span
+                          key={tag.id}
+                          className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full"
+                        >
+                          {tag.value}
+                        </span>
+                      ))}
+                    </div>
+                    <div className={`mt-4 text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+                      <p>
+                        By {template.user.firstName} {template.user.lastName}
+                      </p>
+                    </div>
+                  </Link>
+                </div>
               ))}
             </div>
 
