@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-  "dev": "npx next dev",
-  "build": "npx next dev",
-  "start": "npx next dev"
-},
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
   "dependencies": {
     "@heroicons/react": "^2.1.5",
     "@monaco-editor/react": "^4.6.0",
