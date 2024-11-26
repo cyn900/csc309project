@@ -4,6 +4,7 @@ import axios from "axios";
 import { useTheme } from "@/context/ThemeContext";
 import { FaArrowLeft, FaEdit, FaTrash } from "react-icons/fa";
 import Comment from "../components/Comment";
+import Link from 'next/link';
 
 interface Comment {
   cID: number;
@@ -685,12 +686,13 @@ const BlogDetailPage = () => {
               </span>
             ))}
             {blog.templates.map((template) => (
-              <span
+              <Link
                 key={template.title}
-                className="bg-green-500 text-white text-sm px-3 py-1 rounded-full"
+                href={`/templates?search=${encodeURIComponent(template.title)}&isSearching=true`}
+                className="bg-green-500 hover:bg-green-600 transition-colors text-white text-sm px-3 py-1 rounded-full cursor-pointer"
               >
                 {template.title}
-              </span>
+              </Link>
             ))}
           </div>
 

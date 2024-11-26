@@ -245,6 +245,22 @@ const CodeTemplateSearch: React.FC = () => {
     router.push('/templates/create');
   };
 
+  // Update useEffect to handle URL parameters
+  useEffect(() => {
+    const searchQuery = router.query.search;
+    const isSearching = router.query.isSearching;
+    
+    if (searchQuery && typeof searchQuery === 'string' && isSearching === 'true') {
+      setSearchParams(prev => ({
+        ...prev,
+        title: searchQuery,
+        page: 1, // Reset to first page
+      }));
+      setIsSearchExpanded(true); // Show the search filters
+      fetchTemplates();
+    }
+  }, [router.query.search, router.query.isSearching]);
+
   return (
     <div
       className={`p-8 min-h-screen ${
