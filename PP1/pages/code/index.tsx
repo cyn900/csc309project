@@ -107,30 +107,32 @@ const CodeExecution: React.FC = () => {
 
   return (
     <div
-      className={`flex flex-col min-h-screen items-center justify-center ${
+      className={`min-h-screen p-8 ${
         isDarkMode ? "bg-gray-900" : "bg-white"
-      } mt-6`}
+      }`}
     >
       <div
-        className={`w-full max-w-4xl p-6 rounded-lg shadow-lg ${
-          isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 text-black"
+        className={`max-w-4xl mx-auto rounded-lg ${
+          isDarkMode ? "text-white" : "text-black"
         }`}
       >
-        <h1 className="text-3xl font-bold text-center">Code Execution</h1>
-        <p className="text-gray-400 text-center mt-2">
+        <h1 className="text-3xl font-bold mb-6">Code Execution</h1>
+        <p className={`mb-6 ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
           Write your code and execute it below.
         </p>
 
-        <form className="mt-6" onSubmit={handleExecute}>
-          <div className="mb-6">
-            <label htmlFor="language" className="block text-sm font-medium">
+        <form className="space-y-6" onSubmit={handleExecute}>
+          <div>
+            <label htmlFor="language" className={`block text-sm font-medium mb-2 ${
+              isDarkMode ? "text-gray-300" : "text-gray-700"
+            }`}>
               Select Language
             </label>
             <select
               id="language"
-              className={`mt-1 block w-full px-4 py-2 rounded-md ${
+              className={`w-full px-4 py-2 rounded-lg border ${
                 isDarkMode
-                  ? "bg-gray-700 text-white border-gray-600"
+                  ? "bg-gray-800 text-white border-gray-700"
                   : "bg-white text-black border-gray-300"
               }`}
               value={language}
@@ -151,47 +153,54 @@ const CodeExecution: React.FC = () => {
             </select>
           </div>
 
-          <div className="mb-6">
-            <label htmlFor="input" className="block text-sm font-medium">
+          <div>
+            <label htmlFor="input" className={`block text-sm font-medium mb-2 ${
+              isDarkMode ? "text-gray-300" : "text-gray-700"
+            }`}>
               Input (JSON Array)
             </label>
             <textarea
               id="input"
               rows={4}
-              className={`mt-1 block w-full px-4 py-2 rounded-md ${
+              className={`w-full px-4 py-2 rounded-lg border ${
                 isDarkMode
-                  ? "bg-gray-700 text-white border-gray-600"
+                  ? "bg-gray-800 text-white border-gray-700"
                   : "bg-white text-black border-gray-300"
               }`}
               value={input}
               onChange={(e) => setInput(e.target.value)}
             />
-            <p className="text-sm text-gray-500 mt-1">
-              Provide input as a JSON array, e.g., ["PythonUser1",
-              "PythonUser2"].
+            <p className={`text-sm mt-2 ${
+              isDarkMode ? "text-gray-400" : "text-gray-500"
+            }`}>
+              Provide input as a JSON array, e.g., ["PythonUser1", "PythonUser2"].
             </p>
           </div>
 
-          <div className="mb-6">
-            <label htmlFor="code" className="block text-sm font-medium">
+          <div>
+            <label htmlFor="code" className={`block text-sm font-medium mb-2 ${
+              isDarkMode ? "text-gray-300" : "text-gray-700"
+            }`}>
               Code
             </label>
-            <MonacoEditor
-              height="400px"
-              language={language}
-              value={code}
-              onChange={handleEditorChange}
-              theme={isDarkMode ? "vs-dark" : "vs-light"}
-              options={{
-                selectOnLineNumbers: true,
-                minimap: { enabled: false },
-              }}
-            />
+            <div className="border rounded-lg overflow-hidden">
+              <MonacoEditor
+                height="400px"
+                language={language}
+                value={code}
+                onChange={handleEditorChange}
+                theme={isDarkMode ? "vs-dark" : "vs-light"}
+                options={{
+                  selectOnLineNumbers: true,
+                  minimap: { enabled: false },
+                }}
+              />
+            </div>
           </div>
 
           <button
             type="submit"
-            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
           >
             Execute Code
           </button>
@@ -201,23 +210,29 @@ const CodeExecution: React.FC = () => {
           {loading ? (
             <div className="flex items-center justify-center py-6">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-              <span className="ml-4 text-lg font-semibold">Loading...</span>
+              <span className={`ml-4 text-lg font-semibold ${
+                isDarkMode ? "text-gray-300" : "text-gray-700"
+              }`}>Loading...</span>
             </div>
           ) : (
             <div>
-              <h2 className="text-xl font-medium">Execution Result</h2>
+              <h2 className={`text-xl font-medium mb-4 ${
+                isDarkMode ? "text-gray-300" : "text-gray-700"
+              }`}>Execution Result</h2>
               {error ? (
-                <pre className="p-4 bg-red-100 text-red-700 rounded-md mt-2 whitespace-pre-wrap">
+                <pre className={`p-4 rounded-lg whitespace-pre-wrap ${
+                  isDarkMode 
+                    ? "bg-red-900/50 text-red-200 border border-red-800" 
+                    : "bg-red-100 text-red-700"
+                }`}>
                   Error: {error}
                 </pre>
               ) : (
-                <pre
-                  className={`p-4 rounded-md mt-2 whitespace-pre-wrap ${
-                    isDarkMode
-                      ? "bg-gray-700 text-white"
-                      : "bg-gray-100 text-black"
-                  }`}
-                >
+                <pre className={`p-4 rounded-lg whitespace-pre-wrap ${
+                  isDarkMode
+                    ? "bg-gray-800 text-gray-300 border border-gray-700"
+                    : "bg-gray-100 text-gray-800"
+                }`}>
                   {output}
                 </pre>
               )}
