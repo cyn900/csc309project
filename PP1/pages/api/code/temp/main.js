@@ -1,14 +1,13 @@
-// Create a function to read input using process.stdin
-function getInput() {
-    return new Promise(function (resolve) {
-        process.stdout.write("Enter something: ");
-        process.stdin.once("data", function (data) {
-            resolve(data.toString().trim()); // Convert input buffer to string
-            process.stdin.pause(); // End the input stream
-        });
-    });
-}
-// Usage of getInput function
-getInput().then(function (userInput) {
-    console.log("You entered: ".concat(userInput));
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var readline = require("readline");
+// Create an interface to read input and write output
+var rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+// Ask for user input and print it
+rl.question("What is your name? ", function (name) {
+    console.log("Hello, ".concat(name, "!"));
+    rl.close(); // Close the interface
 });

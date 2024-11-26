@@ -1,5 +1,4 @@
-# Prompt the user for input
-user_input <- readline(prompt = "Enter something: ")
+# main.R
 
-# Print the input
-cat("You entered:", user_input, "\n")
+# Print "Hello there!" to the console
+cat("Hello there!\n")
