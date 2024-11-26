@@ -107,6 +107,17 @@ const executeInterpretedCode = (
         `/bin/sh -c "tsc /app/main.ts --outDir /app && node /app/main.js < /app/input.txt"`,
       ].join(" ");
     } else {
+      const inputRedirection = "< /app/input.txt"; // Common for languages supporting input redirection
+
+      const languageCommands: { [key: string]: string } = {
+        python: `python3 -u /app/main.py ${inputRedirection}`,
+        javascript: `node /app/main.js ${inputRedirection}`, // Node.js doesn't natively support stdin redirection, so ensure scripts handle stdin properly
+        ruby: `ruby /app/main.rb ${inputRedirection}`,
+        bash: `bash /app/main.sh ${inputRedirection}`,
+        r: `Rscript /app/main.r ${inputRedirection}`,
+        haskell: `runhaskell /app/main.hs ${inputRedirection}`,
+      };
+
       command = [
         "docker",
         "run",
@@ -116,21 +127,7 @@ const executeInterpretedCode = (
         "-v",
         `${tempDir}:/app`,
         `${language}-image`,
-        `/bin/sh -c '${
-          language === "python"
-            ? "python3 -u"
-            : language === "javascript"
-            ? "node"
-            : language === "ruby"
-            ? "ruby"
-            : language === "bash"
-            ? "bash"
-            : language === "r"
-            ? "Rscript /app/main.r < /app/input.txt"
-            : language === "haskell"
-            ? "runhaskell"
-            : ""
-        } /app/main.${extension}'`,
+        `/bin/sh -c '${languageCommands[language] || ""}'`,
       ].join(" ");
     }
 
