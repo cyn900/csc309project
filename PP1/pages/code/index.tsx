@@ -4,6 +4,7 @@ import axios from "axios";
 import { useTheme } from "../../context/ThemeContext";
 import { useCode } from "../../context/CodeContext";
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
@@ -105,6 +106,17 @@ const CodeExecution: React.FC = () => {
     setCode(value || "");
   };
 
+  const handleCreateTemplate = () => {
+    // Store the current code execution state in localStorage
+    const templateData = {
+      code: code,
+      language: language,
+      input: input
+    };
+    localStorage.setItem('newTemplateData', JSON.stringify(templateData));
+    router.push('/templates/create');
+  };
+
   return (
     <div
       className={`min-h-screen p-8 ${
@@ -116,7 +128,19 @@ const CodeExecution: React.FC = () => {
           isDarkMode ? "text-white" : "text-black"
         }`}
       >
-        <h1 className="text-3xl font-bold mb-6">Code Execution</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Code Execution</h1>
+          <button
+            onClick={handleCreateTemplate}
+            className={`px-4 py-2 rounded-lg ${
+              isDarkMode
+                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                : "bg-blue-500 hover:bg-blue-600 text-white"
+            }`}
+          >
+            Create Template
+          </button>
+        </div>
         <p className={`mb-6 ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
           Write your code and execute it below.
         </p>

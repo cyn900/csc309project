@@ -28,6 +28,21 @@ const CreateTemplate: React.FC = () => {
     });
   }, [formData.title, formData.explanation]);
 
+  // Add this useEffect to load code execution data
+  useEffect(() => {
+    const savedData = localStorage.getItem('newTemplateData');
+    if (savedData) {
+      const { code, language, input } = JSON.parse(savedData);
+      setFormData(prev => ({
+        ...prev,
+        code: code,
+        explanation: `Language: ${language}\n\nSample Input: ${input || 'None'}\n`,
+      }));
+      // Clear the saved data after loading
+      localStorage.removeItem('newTemplateData');
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
