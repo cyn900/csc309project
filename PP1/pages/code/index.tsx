@@ -125,7 +125,6 @@ const CodeExecution: React.FC = () => {
               <option value="c">C</option>
               <option value="csharp">C#</option>
               <option value="go">Go</option>
-              <option value="typescript">TypeScript</option>
               <option value="ruby">Ruby</option>
               <option value="rust">Rust</option>
               <option value="bash">Bash</option>

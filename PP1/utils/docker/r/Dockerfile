@@ -7,8 +7,5 @@ WORKDIR /app
 # Copy application files
 COPY . /app
 
-# Install any necessary R packages
-RUN Rscript -e "install.packages('ggplot2', repos='http://cran.rstudio.com/')"
-
 # Default command
 CMD ["Rscript", "main.R"]

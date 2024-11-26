@@ -126,13 +126,11 @@ const executeInterpretedCode = (
             : language === "bash"
             ? "bash"
             : language === "r"
-            ? "Rscript"
-            : language === "matlab"
-            ? "matlab -nodisplay -nosplash -r"
+            ? "Rscript /app/main.r < /app/input.txt"
             : language === "haskell"
             ? "runhaskell"
             : ""
-        } /app/main.${extension} < /app/input.txt'`,
+        } /app/main.${extension}'`,
       ].join(" ");
     }
 
@@ -221,7 +219,7 @@ const executeCompiledCode = (
           language === "cpp" ||
           language === "go" ||
           language === "rust"
-        ? `/app/program < /app/input.txt`
+        ? `mkdir -p /app/tmp && RUST_TMPDIR=/app/tmp rustc -o /app/program /app/Main.${extension}`
         : language === "csharp"
         ? `mono /app/Main.exe < /app/input.txt`
         : null;
@@ -240,7 +238,7 @@ const executeCompiledCode = (
       "-v",
       `${tempDir}:/app`,
       `${language}-image`,
-      `/bin/sh -c '${compileCommand} && ${executeCommand}'`,
+      `/bin/sh -c 'mkdir -p /app/tmp && RUST_TMPDIR=/app/tmp rustc -o /app/program /app/Main.rs && /app/program < /app/input.txt'`,
     ].join(" ");
 
     console.log(`Executing Docker command: ${compileAndRunCommand}`);

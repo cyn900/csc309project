@@ -1,5 +1,8 @@
-# Prompt the user for input
-user_input <- readline(prompt = "Enter something: ")
+# Open input.txt and read its contents
+input_file <- file("stdin")
+input <- readLines(input_file, warn = FALSE)
+close(input_file)
 
-# Print the input
-cat("You entered:", user_input, "\n")
+# Output the content
+cat("You entered:\n")
+print(input)
