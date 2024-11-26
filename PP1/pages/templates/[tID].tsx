@@ -3,6 +3,8 @@ import { useRouter } from "next/router";
 import axios from "axios";
 import { useTheme } from "../../context/ThemeContext";
 import { useCode } from "../../context/CodeContext";
+import { FaArrowLeft, FaEdit, FaTrash, FaCode } from "react-icons/fa";
+import Link from "next/link";
 
 const TemplateDetails: React.FC = () => {
   const router = useRouter();
@@ -217,13 +219,13 @@ const TemplateDetails: React.FC = () => {
             {isOwner && !isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isDarkMode
-                    ? "bg-gray-700 text-white hover:bg-gray-600"
-                    : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
+                className={`p-2 rounded-full transition-colors duration-200 ${
+                  isDarkMode 
+                    ? "text-gray-400 hover:bg-gray-700 hover:text-blue-400" 
+                    : "text-gray-600 hover:bg-gray-200 hover:text-blue-600"
                 }`}
               >
-                Edit Template
+                <FaEdit />
               </button>
             )}
             {isEditing && (
@@ -249,20 +251,25 @@ const TemplateDetails: React.FC = () => {
                 </button>
               </>
             )}
+            {isOwner && (
+              <button
+                onClick={handleDelete}
+                className={`p-2 rounded-full transition-colors duration-200 ${
+                  isDarkMode 
+                    ? "text-gray-400 hover:bg-gray-700 hover:text-red-400" 
+                    : "text-gray-600 hover:bg-gray-200 hover:text-red-600"
+                }`}
+              >
+                <FaTrash />
+              </button>
+            )}
             <button
               onClick={handleFork}
               className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors"
             >
               {localStorage.getItem("accessToken") ? "Fork Template" : "Fork"}
             </button>
-            {isOwner && (
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
-              >
-                Delete
-              </button>
-            )}
+            
           </div>
         </div>
 
@@ -350,7 +357,20 @@ const TemplateDetails: React.FC = () => {
 
         {/* Code Section */}
         <div className={`rounded-lg p-6 ${isDarkMode ? "bg-gray-800" : "bg-white"} shadow-sm`}>
-          <h2 className="text-lg font-semibold mb-3">Code</h2>
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-lg font-semibold">Code</h2>
+            <Link
+              href={`/code?tID=${template.tID}`}
+              className={`p-2 rounded-full transition-colors duration-200 ${
+                isDarkMode 
+                  ? "text-gray-400 hover:bg-gray-700 hover:text-green-400" 
+                  : "text-gray-600 hover:bg-gray-200 hover:text-green-600"
+              }`}
+              title="Try code"
+            >
+              <FaCode />
+            </Link>
+          </div>
           {isEditing ? (
             <textarea
               value={editedTemplate.code}
