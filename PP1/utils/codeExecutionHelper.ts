@@ -39,7 +39,8 @@ const ensureDirectoryExists = (dirPath: string) => {
  * Resolves the `temp` directory relative to the project root.
  */
 const resolveTempDir = () => {
-  return path.join(process.cwd(), "pages/api/code/temp");
+  // return path.join(process.cwd(), "pages/api/code/temp");
+  return path.join("/tmp", "pages/api/code/temp");
 };
 
 /**
