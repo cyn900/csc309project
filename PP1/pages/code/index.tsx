@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import axios from "axios";
 import { useTheme } from "../../context/ThemeContext";
 import { useCode } from "../../context/CodeContext";
+import { useRouter } from 'next/router';
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
@@ -18,6 +19,8 @@ const CodeExecution: React.FC = () => {
 
   const { isDarkMode } = useTheme();
   const { code: contextCode, setCode: setContextCode } = useCode();
+  const router = useRouter();
+  const { tID } = router.query;
 
   useEffect(() => {
     if (contextCode) {
@@ -25,6 +28,21 @@ const CodeExecution: React.FC = () => {
       setContextCode("");
     }
   }, [contextCode, setContextCode]);
+
+  useEffect(() => {
+    const fetchTemplateCode = async () => {
+      if (tID) {
+        try {
+          const response = await axios.get(`/api/templates?tID=${tID}`);
+          setCode(response.data.code);
+        } catch (error) {
+          console.error("Failed to fetch template code:", error);
+        }
+      }
+    };
+
+    fetchTemplateCode();
+  }, [tID]);
 
   const handleExecute = async (e: React.FormEvent) => {
     e.preventDefault();
