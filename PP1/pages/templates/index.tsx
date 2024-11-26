@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/20/solid";
 import { FaTrash, FaEdit, FaCode } from "react-icons/fa";
 import { useAuth } from "@/context/AuthContext";
+import { useRouter } from 'next/router';
 
 interface Template {
   tID: number;
@@ -37,6 +38,7 @@ interface MetaData {
 const CodeTemplateSearch: React.FC = () => {
   const { isDarkMode } = useTheme();
   const { currentUser } = useAuth();
+  const router = useRouter();
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [metaData, setMetaData] = useState<MetaData>({
@@ -234,6 +236,15 @@ const CodeTemplateSearch: React.FC = () => {
     }
   };
 
+  const handleCreate = () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      alert("Please log in to create a template");
+      return;
+    }
+    router.push('/templates/create');
+  };
+
   return (
     <div
       className={`p-8 min-h-screen ${
@@ -254,8 +265,8 @@ const CodeTemplateSearch: React.FC = () => {
           >
             {isSearchExpanded ? "Hide Filters" : "Show Filters"}
           </button>
-          <Link
-            href="/templates/create"
+          <button
+            onClick={handleCreate}
             className={`px-4 py-2 rounded-lg ${
               isDarkMode
                 ? "bg-blue-600 hover:bg-blue-700 text-white"
@@ -263,7 +274,7 @@ const CodeTemplateSearch: React.FC = () => {
             }`}
           >
             Create Template
-          </Link>
+          </button>
         </div>
       </div>
 
