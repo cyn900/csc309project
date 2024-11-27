@@ -170,7 +170,15 @@ const EditBlogPage = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form 
+          onSubmit={handleSubmit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+            }
+          }}
+          className="space-y-6"
+        >
           <div>
             <label className="block mb-2 font-medium">
               Title
@@ -262,12 +270,38 @@ const EditBlogPage = () => {
                 ({10 - templates.length} remaining)
               </span>
             </label>
-            <div className="relative">
+
+            {/* Selected Templates */}
+            {templates.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-sm font-medium mb-2">Selected Templates:</h3>
+                <div className="flex flex-wrap gap-2">
+                  {blog?.templates.map((template) => (
+                    <span
+                      key={template.tID}
+                      className="bg-green-500 text-white px-3 py-1 rounded-full text-sm flex items-center"
+                    >
+                      {template.title}
+                      <button
+                        type="button"
+                        onClick={() => handleTemplateToggle(template.tID)}
+                        className="ml-2 hover:text-red-200"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Template Search Input */}
+            <div className="relative mb-4">
               <input
                 type="text"
                 value={templateSearch}
                 onChange={(e) => setTemplateSearch(e.target.value)}
-                className={`w-full p-3 rounded-lg border transition-colors duration-200 ${
+                className={`w-full p-3 rounded-lg border ${
                   isDarkMode
                     ? "bg-gray-800 border-gray-700 focus:border-blue-500"
                     : "bg-white border-gray-300 focus:border-blue-400"
@@ -275,36 +309,34 @@ const EditBlogPage = () => {
                 placeholder="Search templates..."
                 disabled={templates.length >= 10}
               />
-              {templateSearch && availableTemplates.length > 0 && (
-                <div
-                  className={`absolute z-10 w-full mt-1 rounded-lg shadow-lg max-h-60 overflow-y-auto ${
-                    isDarkMode ? "bg-gray-800" : "bg-white"
-                  } border ${
-                    isDarkMode ? "border-gray-700" : "border-gray-300"
-                  }`}
-                >
-                  {availableTemplates.map((template) => (
-                    <div
-                      key={template.tID}
-                      onClick={() => handleTemplateToggle(template.tID)}
-                      className={`p-3 cursor-pointer transition-colors duration-200 ${
-                        isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>{template.title}</span>
-                        <input
-                          type="checkbox"
-                          checked={templates.includes(template.tID)}
-                          onChange={() => handleTemplateToggle(template.tID)}
-                          className="ml-2"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
+
+            {/* Template Suggestions */}
+            {templateSearch && availableTemplates.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium mb-2">Suggestions:</h3>
+                <div className={`rounded-md border ${
+                  isDarkMode ? "border-gray-700" : "border-gray-200"
+                }`}>
+                  {availableTemplates
+                    .filter(template => !templates.includes(template.tID))
+                    .slice(0, 5)
+                    .map((template) => (
+                      <div
+                        key={template.tID}
+                        onClick={() => handleTemplateToggle(template.tID)}
+                        className={`px-4 py-2 cursor-pointer first:rounded-t-md last:rounded-b-md ${
+                          isDarkMode 
+                            ? "hover:bg-gray-700 border-gray-700" 
+                            : "hover:bg-gray-100 border-gray-200"
+                        } border-b last:border-b-0`}
+                      >
+                        {template.title}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-4 pt-4">
