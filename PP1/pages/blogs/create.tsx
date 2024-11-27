@@ -6,7 +6,7 @@ import axios from "axios";
 interface Template {
   tID: number;
   title: string;
-  tags: { value: string }[];
+  tags?: { value: string }[];
 }
 
 export default function CreateBlog() {
@@ -22,7 +22,7 @@ export default function CreateBlog() {
 
   const [tagInput, setTagInput] = useState("");
   const [templateSearch, setTemplateSearch] = useState("");
-  const [availableTemplates, setAvailableTemplates] = useState<Template[]>([]);
+  const [availableTemplates, setAvailableTemplates] = useState<{ tID: number; title: string }[]>([]);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [charCount, setCharCount] = useState({ title: 0, description: 0 });
@@ -32,18 +32,8 @@ export default function CreateBlog() {
     const fetchTemplates = async () => {
       if (templateSearch.trim()) {
         try {
-          const token = localStorage.getItem("accessToken");
-          const response = await axios.get("/api/templates", {
-            headers: { Authorization: token },
-            params: {
-              search: templateSearch.trim(),
-            },
-          });
-          console.log("Templates response:", response.data);
-
-          // Extract templates from the response
-          const templates = response.data || [];
-          setAvailableTemplates(templates);
+          const response = await axios.get(`/api/templates/search?search=${templateSearch}`);
+          setAvailableTemplates(response.data.slice(0, 5)); // Limit to 5 results
         } catch (error) {
           console.error("Failed to fetch templates:", error);
           setAvailableTemplates([]);
@@ -148,7 +138,15 @@ export default function CreateBlog() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form 
+          onSubmit={handleSubmit} 
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+            }
+          }}
+          className="space-y-6"
+        >
           <div>
             <label className="block mb-2 font-medium">
               Title
@@ -255,12 +253,43 @@ export default function CreateBlog() {
                 ({10 - formData.templates.length} remaining)
               </span>
             </label>
-            <div className="relative">
+            
+            {/* Selected Templates */}
+            {formData.templates.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-sm font-medium mb-2">Selected Templates:</h3>
+                <div className="flex flex-wrap gap-2">
+                  {formData.templates.map((template) => (
+                    <span
+                      key={template}
+                      className="bg-green-500 text-white px-3 py-1 rounded-full text-sm flex items-center"
+                    >
+                      {template}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            templates: prev.templates.filter((t) => t !== template),
+                          }))
+                        }
+                        className="ml-2 hover:text-red-200"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Template Search Input */}
+            <div className="relative mb-4">
               <input
                 type="text"
                 value={templateSearch}
                 onChange={(e) => setTemplateSearch(e.target.value)}
-                className={`w-full p-3 rounded-lg border transition-colors duration-200 ${
+                className={`w-full p-3 rounded-lg border ${
                   isDarkMode
                     ? "bg-gray-800 border-gray-700 focus:border-blue-500"
                     : "bg-white border-gray-300 focus:border-blue-400"
@@ -268,61 +297,33 @@ export default function CreateBlog() {
                 placeholder="Search templates..."
                 disabled={formData.templates.length >= 10}
               />
-              {templateSearch && availableTemplates.length > 0 && (
-                <div
-                  className={`absolute z-10 w-full mt-1 rounded-lg shadow-lg max-h-60 overflow-y-auto ${
-                    isDarkMode ? "bg-gray-800" : "bg-white"
-                  } border ${
-                    isDarkMode ? "border-gray-700" : "border-gray-300"
-                  }`}
-                >
-                  {availableTemplates.map((template) => (
-                    <div
-                      key={template.tID}
-                      onClick={() => handleTemplateAdd(template)}
-                      className={`p-3 cursor-pointer transition-colors duration-200 ${
-                        isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                      }`}
-                    >
-                      <div>{template.title}</div>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {template.tags.map((tag) => (
-                          <span
-                            key={tag.value}
-                            className="text-xs px-2 py-0.5 bg-blue-500 text-white rounded-full"
-                          >
-                            {tag.value}
-                          </span>
-                        ))}
+            </div>
+
+            {/* Template Suggestions */}
+            {templateSearch && availableTemplates.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium mb-2">Suggestions:</h3>
+                <div className={`rounded-md border ${
+                  isDarkMode ? "border-gray-700" : "border-gray-200"
+                }`}>
+                  {availableTemplates
+                    .filter(template => !formData.templates.includes(template.title))
+                    .map((template) => (
+                      <div
+                        key={template.tID}
+                        onClick={() => handleTemplateAdd(template)}
+                        className={`px-4 py-2 cursor-pointer first:rounded-t-md last:rounded-b-md ${
+                          isDarkMode 
+                            ? "hover:bg-gray-700 border-gray-700" 
+                            : "hover:bg-gray-100 border-gray-200"
+                        } border-b last:border-b-0`}
+                      >
+                        {template.title}
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {formData.templates.map((template) => (
-                <span
-                  key={template}
-                  className="bg-green-500 text-white px-3 py-1 rounded-full text-sm flex items-center
-                           transition-transform duration-200 hover:scale-105"
-                >
-                  {template}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        templates: prev.templates.filter((t) => t !== template),
-                      }))
-                    }
-                    className="ml-2 hover:text-red-200 transition-colors duration-200"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-4 pt-4">
