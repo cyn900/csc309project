@@ -24,11 +24,6 @@ interface CodeExecutionRequestBody {
     | "haskell";
 }
 
-type ExecutionResult = {
-  stdout: string;
-  stderr: string;
-};
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -46,7 +41,9 @@ export default async function handler(
         .json({ error: "Code and language are required fields" });
     }
 
-    let output: ExecutionResult;
+    const stdin = input.join("\n"); // Combine inputs into a single string
+
+    let output;
 
     if (
       [
@@ -60,18 +57,16 @@ export default async function handler(
         "haskell",
       ].includes(language)
     ) {
-      // Interpreted languages
-      output = await executeInterpretedCode(language, code, input);
+      output = await executeInterpretedCode(language, code, [stdin]);
     } else if (
       ["java", "c", "cpp", "csharp", "go", "rust"].includes(language)
     ) {
-      // Compiled languages
-      output = await executeCompiledCode(language, code, input);
+      output = await executeCompiledCode(language, code, [stdin]);
     } else {
       return res.status(400).json({ error: "Unsupported language" });
     }
 
-    return res.status(200).json({ output }); // Return the output directly
+    return res.status(200).json({ output });
   } catch (error: any) {
     console.error("Error during code execution:", error);
 
@@ -79,6 +74,7 @@ export default async function handler(
       error: `Failed to execute code: ${error.message || "Unknown error"}`,
       output: {
         stderr: error.stderr || "No stderr available",
+        message: error.message || "No message available",
       },
     });
   }

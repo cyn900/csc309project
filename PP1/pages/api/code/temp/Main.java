@@ -1,22 +1,21 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+// input example: ["a", "b"]
+const readline = require('readline');
 
-public class Main {
-    public static void main(String[] args) {
-        // Create a BufferedReader for input
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+// Create a readline interface for input/output
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
 
-        System.out.print("Enter something: ");
-        try {
-            // Read input from the user
-            String userInput = reader.readLine();
+let inputs = [];
 
-            // Print the input
-            System.out.println("You entered: " + userInput);
-        } catch (IOException e) {
-            // Handle potential IO exceptions
-            System.out.println("An error occurred while reading input.");
-        }
-    }
-}
+// Listen for each line of input
+rl.on('line', (input) => {
+  inputs.push(input); // Add the input to the array
+
+  // Check if two inputs have been received
+  if (inputs.length === 2) {
+    console.log(`Hello, ${inputs[0]} and ${inputs[1]}`); // Process and display the inputs
+    rl.close(); // Close the readline interface
+  }
+});

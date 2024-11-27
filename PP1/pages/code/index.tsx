@@ -3,8 +3,14 @@ import dynamic from "next/dynamic";
 import axios from "axios";
 import { useTheme } from "../../context/ThemeContext";
 import { useCode } from "../../context/CodeContext";
-import { useRouter } from 'next/router';
-import Link from 'next/link';
+import { useRouter } from "next/router";
+import Link from "next/link";
+
+type ErrorDetails = {
+  stderr: string;
+  message: string;
+  errorMessage: string;
+};
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
@@ -13,7 +19,7 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
 const CodeExecution: React.FC = () => {
   const [code, setCode] = useState<string>("");
   const [output, setOutput] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorDetails | null>(null);
   const [language, setLanguage] = useState<string>("python");
   const [input, setInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false); // New loading state
@@ -47,7 +53,7 @@ const CodeExecution: React.FC = () => {
 
   const handleExecute = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true); // Show loading screen while code is executing
+    setLoading(true);
     setError(null);
     setOutput(""); // Clear previous output
 
@@ -78,21 +84,28 @@ const CodeExecution: React.FC = () => {
       const { stdout, stderr } = response.data.output;
       const formattedOutput = `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`;
       setOutput(formattedOutput);
-      setError(null);
+      setError(null); // Clear errors if execution succeeds
     } catch (err: any) {
       console.error("Execution failed:", err);
 
+      // Default values for error details
+      let stderr = "No stderr available";
+      let message = "No message available";
+      let errorMessage = "An unexpected error occurred.";
+
       if (err.response && err.response.status === 400) {
-        const { stderr } = err.response.data.output || {};
-        const errorMessage = `Execution failed with backend error.\n\nSTDERR:\n${
-          stderr || "No stderr provided."
-        }`;
-        setError(errorMessage);
-      } else {
-        setError(err.message || "An unexpected error occurred.");
+        const output = err.response.data.output || {};
+        stderr = output.stderr || stderr;
+        message = output.message || message;
+        errorMessage = `Execution failed with backend error.\n\nSTDERR:\n${stderr}\n\nMessage:\n${message}`;
+      } else if (err.message) {
+        errorMessage += `\n\nError Details:\n${err.message}`;
       }
+
+      // Set error state using the ErrorDetails interface
+      setError({ stderr, message, errorMessage });
     } finally {
-      setLoading(false); // Hide loading screen after execution is complete
+      setLoading(false);
     }
   };
 
@@ -107,26 +120,19 @@ const CodeExecution: React.FC = () => {
   };
 
   const handleCreateTemplate = () => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      alert("Please log in to create a template");
-      return;
-    }
     // Store the current code execution state in localStorage
     const templateData = {
       code: code,
       language: language,
-      input: input
+      input: input,
     };
-    localStorage.setItem('newTemplateData', JSON.stringify(templateData));
-    router.push('/templates/create');
+    localStorage.setItem("newTemplateData", JSON.stringify(templateData));
+    router.push("/templates/create");
   };
 
   return (
     <div
-      className={`min-h-screen p-8 ${
-        isDarkMode ? "bg-gray-900" : "bg-white"
-      }`}
+      className={`min-h-screen p-8 ${isDarkMode ? "bg-gray-900" : "bg-white"}`}
     >
       <div
         className={`max-w-4xl mx-auto rounded-lg ${
@@ -152,9 +158,12 @@ const CodeExecution: React.FC = () => {
 
         <form className="space-y-6" onSubmit={handleExecute}>
           <div>
-            <label htmlFor="language" className={`block text-sm font-medium mb-2 ${
-              isDarkMode ? "text-gray-300" : "text-gray-700"
-            }`}>
+            <label
+              htmlFor="language"
+              className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? "text-gray-300" : "text-gray-700"
+              }`}
+            >
               Select Language
             </label>
             <select
@@ -183,9 +192,12 @@ const CodeExecution: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="input" className={`block text-sm font-medium mb-2 ${
-              isDarkMode ? "text-gray-300" : "text-gray-700"
-            }`}>
+            <label
+              htmlFor="input"
+              className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? "text-gray-300" : "text-gray-700"
+              }`}
+            >
               Input (JSON Array)
             </label>
             <textarea
@@ -199,17 +211,23 @@ const CodeExecution: React.FC = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
             />
-            <p className={`text-sm mt-2 ${
-              isDarkMode ? "text-gray-400" : "text-gray-500"
-            }`}>
-              Provide input as a JSON array, e.g., ["PythonUser1", "PythonUser2"].
+            <p
+              className={`text-sm mt-2 ${
+                isDarkMode ? "text-gray-400" : "text-gray-500"
+              }`}
+            >
+              Provide input as a JSON array, e.g., ["PythonUser1",
+              "PythonUser2"].
             </p>
           </div>
 
           <div>
-            <label htmlFor="code" className={`block text-sm font-medium mb-2 ${
-              isDarkMode ? "text-gray-300" : "text-gray-700"
-            }`}>
+            <label
+              htmlFor="code"
+              className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? "text-gray-300" : "text-gray-700"
+              }`}
+            >
               Code
             </label>
             <div className="border rounded-lg overflow-hidden">
@@ -239,31 +257,56 @@ const CodeExecution: React.FC = () => {
           {loading ? (
             <div className="flex items-center justify-center py-6">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-              <span className={`ml-4 text-lg font-semibold ${
-                isDarkMode ? "text-gray-300" : "text-gray-700"
-              }`}>Loading...</span>
+              <span
+                className={`ml-4 text-lg font-semibold ${
+                  isDarkMode ? "text-gray-300" : "text-gray-700"
+                }`}
+              >
+                Loading...
+              </span>
             </div>
           ) : (
             <div>
-              <h2 className={`text-xl font-medium mb-4 ${
-                isDarkMode ? "text-gray-300" : "text-gray-700"
-              }`}>Execution Result</h2>
-              {error ? (
-                <pre className={`p-4 rounded-lg whitespace-pre-wrap ${
-                  isDarkMode 
-                    ? "bg-red-900/50 text-red-200 border border-red-800" 
-                    : "bg-red-100 text-red-700"
-                }`}>
-                  Error: {error}
-                </pre>
-              ) : (
-                <pre className={`p-4 rounded-lg whitespace-pre-wrap ${
-                  isDarkMode
-                    ? "bg-gray-800 text-gray-300 border border-gray-700"
-                    : "bg-gray-100 text-gray-800"
-                }`}>
+              <h2
+                className={`text-xl font-medium mb-4 ${
+                  isDarkMode ? "text-gray-300" : "text-gray-700"
+                }`}
+              >
+                Execution Result
+              </h2>
+              {output && (
+                <pre
+                  className={`p-4 rounded-lg whitespace-pre-wrap ${
+                    isDarkMode
+                      ? "bg-gray-800 text-gray-300 border border-gray-700"
+                      : "bg-gray-100 text-gray-800"
+                  }`}
+                >
                   {output}
                 </pre>
+              )}
+              {error && (
+                <div
+                  className={`mt-4 p-4 rounded-lg whitespace-pre-wrap ${
+                    isDarkMode
+                      ? "bg-red-900/50 text-red-200 border border-red-800"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  <h3 className="text-lg font-semibold mb-2">Error:</h3>
+
+                  {/* Display STDERR */}
+                  <pre className="mb-4">
+                    <strong>STDERR:</strong>{" "}
+                    {error.stderr || "No stderr available"}
+                  </pre>
+
+                  {/* Display Message */}
+                  <pre>
+                    <strong>Message:</strong>{" "}
+                    {error.message || "No message available"}
+                  </pre>
+                </div>
               )}
             </div>
           )}

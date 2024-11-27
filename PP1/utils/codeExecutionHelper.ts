@@ -3,10 +3,10 @@ import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 
-// Define types for function parameters and return values
 type ExecutionResult = {
   stdout: string;
   stderr: string;
+  message?: string;
 };
 
 type Language =
@@ -25,31 +25,60 @@ type Language =
   | "r"
   | "haskell";
 
-/**
- * Ensures a directory exists, creating it if necessary.
- * @param dirPath Path of the directory.
- */
-const ensureDirectoryExists = (dirPath: string) => {
+const ensureDirectoryExists = (dirPath: string): void => {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
 };
 
-/**
- * Resolves the `temp` directory relative to the project root.
- */
-const resolveTempDir = () => {
+const resolveTempDir = (): string => {
   return path.join(process.cwd(), "pages/api/code/temp");
 };
 
-/**
- * Executes interpreted code for languages like JavaScript, Python, etc., using Docker.
- * @param language Programming language.
- * @param code Code to execute.
- * @param inputs Input to pass to the program.
- * @param timeout Maximum execution time in milliseconds.
- * @returns Promise resolving to the output and error.
- */
+const executeCommandWithTimeout = (
+  command: string,
+  timeout: number,
+  stdin: string = ""
+): Promise<ExecutionResult> => {
+  return new Promise((resolve, reject) => {
+    const child = exec(
+      command,
+      { timeout, maxBuffer: 1024 * 1024 }, // Adjust maxBuffer as needed
+      (error, stdout, stderr) => {
+        if (error) {
+          let detailedMessage = "An unexpected error occurred.";
+
+          // Handle timeout error
+          if (error.signal === "SIGTERM") {
+            detailedMessage =
+              "Execution timed out. The code took too long to complete.";
+          }
+
+          // Handle maxBuffer overflow
+          if (error.message.includes("stdout maxBuffer length exceeded")) {
+            detailedMessage =
+              "Execution error: Maximum buffer size exceeded. This may occur if your code prints too much output.";
+          }
+
+          return reject({
+            stdout: stdout.trim(),
+            stderr: stderr.trim(),
+            message: detailedMessage,
+          });
+        }
+
+        resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
+      }
+    );
+
+    // Write stdin to the process
+    if (stdin) {
+      child.stdin?.write(stdin);
+      child.stdin?.end();
+    }
+  });
+};
+
 const executeInterpretedCode = (
   language: Language,
   code: string | string[],
@@ -73,87 +102,48 @@ const executeInterpretedCode = (
     const extension = extensionMap[language];
 
     if (!extension) {
-      return reject(
-        new Error(`Unsupported language for interpreted code: ${language}`)
-      );
+      return reject({
+        stdout: "",
+        stderr: "",
+        message: `Unsupported language for interpreted code: ${language}`,
+      });
     }
 
     const filePath = path.join(tempDir, `main.${extension}`);
     const codeContent = Array.isArray(code) ? code.join("\n") : code;
     fs.writeFileSync(filePath, codeContent);
 
-    // Write inputs to input.txt
-    const inputFilePath = path.join(tempDir, "input.txt");
-    if (inputs.length > 0) {
-      fs.writeFileSync(inputFilePath, inputs.join("\n"));
-    } else {
-      // Ensure input.txt exists even if no inputs are provided
-      fs.writeFileSync(inputFilePath, "");
-    }
+    const stdin = inputs.join("\n");
 
-    let command: string;
+    const languageCommands: { [key: string]: string } = {
+      python: `python3 -u /app/main.py`,
+      javascript: `node /app/main.js`,
+      ruby: `ruby /app/main.rb`,
+      bash: `bash /app/main.sh`,
+      r: `Rscript /app/main.r`,
+      haskell: `runhaskell /app/main.hs`,
+      matlab: `matlab -batch "run('/app/main.m')"`,
+    };
 
-    if (language === "typescript") {
-      // Compile TypeScript to JavaScript
-      command = [
-        "docker",
-        "run",
-        "--rm",
-        "--name",
-        `code-runner-${language}-${uuidv4()}`,
-        "-v",
-        `${tempDir}:/app`,
-        `${language}-image`,
-        `/bin/sh -c "tsc /app/main.ts --outDir /app && node /app/main.js < /app/input.txt"`,
-      ].join(" ");
-    } else {
-      const inputRedirection = "< /app/input.txt"; // Common for languages supporting input redirection
+    const command = [
+      "docker",
+      "run",
+      "--rm",
+      "-i", // Enable interactive mode for stdin
+      "--name",
+      `code-runner-${language}-${uuidv4()}`,
+      "-v",
+      `${tempDir}:/app`,
+      `${language}-image`,
+      `/bin/sh -c '${languageCommands[language]}'`,
+    ].join(" ");
 
-      const languageCommands: { [key: string]: string } = {
-        python: `python3 -u /app/main.py ${inputRedirection}`,
-        javascript: `node /app/main.js ${inputRedirection}`, // Node.js doesn't natively support stdin redirection, so ensure scripts handle stdin properly
-        ruby: `ruby /app/main.rb ${inputRedirection}`,
-        bash: `bash /app/main.sh ${inputRedirection}`,
-        r: `Rscript /app/main.r ${inputRedirection}`,
-        haskell: `runhaskell /app/main.hs ${inputRedirection}`,
-      };
-
-      command = [
-        "docker",
-        "run",
-        "--rm",
-        "--name",
-        `code-runner-${language}-${uuidv4()}`,
-        "-v",
-        `${tempDir}:/app`,
-        `${language}-image`,
-        `/bin/sh -c '${languageCommands[language] || ""}'`,
-      ].join(" ");
-    }
-
-    console.log(`Executing Docker command: ${command}`);
-
-    exec(command, { timeout }, (error, stdout, stderr) => {
-      if (error) {
-        return reject({
-          stdout: stdout.trim(),
-          stderr: stderr.trim(),
-          message: `Execution error: ${error.message}`,
-        });
-      }
-      resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
-    });
+    executeCommandWithTimeout(command, timeout, stdin)
+      .then(resolve)
+      .catch(reject);
   });
 };
 
-/**
- * Executes compiled code for languages like Java, C, C++, Go, etc., using Docker.
- * @param language Programming language.
- * @param code Source code to compile and execute.
- * @param inputs Input to pass to the program.
- * @param timeout Maximum execution time in milliseconds.
- * @returns Promise resolving to the output and error.
- */
 const executeCompiledCode = (
   language: Language,
   code: string,
@@ -175,81 +165,69 @@ const executeCompiledCode = (
     const extension = extensionMap[language];
 
     if (!extension) {
-      return reject(
-        new Error(`Unsupported language for compiled code: ${language}`)
-      );
+      return reject({
+        stdout: "",
+        stderr: "",
+        message: `Unsupported language for compiled code: ${language}`,
+      });
     }
 
     const filePath = path.join(tempDir, `Main.${extension}`);
-
-    // Write the code to the Main.{extension} file
     fs.writeFileSync(filePath, code);
 
-    // Write inputs to input.txt
-    const inputFilePath = path.join(tempDir, "input.txt");
-    if (inputs.length > 0) {
-      fs.writeFileSync(inputFilePath, inputs.join("\n"));
-    } else {
-      // Ensure input.txt exists even if no inputs are provided
-      fs.writeFileSync(inputFilePath, "");
-    }
+    const stdin = inputs.join("\n");
 
     const compileCommand =
-      language === "java"
-        ? `javac /app/Main.${extension}`
+      language === "rust"
+        ? `mkdir -p /app/tmp && RUST_TMPDIR=/app/tmp rustc -o /app/program /app/Main.rs`
         : language === "c"
-        ? `gcc -o /app/program /app/Main.${extension}`
+        ? `gcc -o /app/program /app/Main.c`
         : language === "cpp"
-        ? `g++ -o /app/program /app/Main.${extension} -lstdc++`
-        : language === "csharp"
-        ? `mcs -out:/app/Main.exe /app/Main.${extension}`
+        ? `g++ -o /app/program /app/Main.cpp`
         : language === "go"
-        ? `go build -o /app/program /app/Main.${extension}`
-        : language === "rust"
-        ? `rustc -o /app/program /app/Main.${extension}`
+        ? `go build -o /app/program /app/Main.go`
+        : language === "java"
+        ? `javac -d /app /app/Main.java`
+        : language === "csharp"
+        ? `mcs -out:/app/Main.exe /app/Main.cs`
         : null;
 
     const executeCommand =
       language === "java"
-        ? `java -cp /app Main < /app/input.txt`
-        : language === "c" ||
-          language === "cpp" ||
-          language === "go" ||
-          language === "rust"
-        ? `mkdir -p /app/tmp && RUST_TMPDIR=/app/tmp rustc -o /app/program /app/Main.${extension}`
+        ? `cat /dev/stdin | java -cp /app Main`
+        : language === "c" || language === "cpp" || language === "go"
+        ? `/app/program`
         : language === "csharp"
-        ? `mono /app/Main.exe < /app/input.txt`
+        ? `mono /app/Main.exe`
+        : language === "rust"
+        ? `/app/program`
         : null;
 
     if (!compileCommand || !executeCommand) {
-      return reject(
-        new Error(`Unsupported language for execution: ${language}`)
-      );
+      return reject({
+        stdout: "",
+        stderr: "",
+        message: `Unsupported language for compiled code: ${language}`,
+      });
     }
 
     const compileAndRunCommand = [
       "docker",
       "run",
       "--rm",
+      "-i", // Interactive flag to support stdin
       "--cap-drop=ALL",
       "-v",
       `${tempDir}:/app`,
       `${language}-image`,
-      `/bin/sh -c 'mkdir -p /app/tmp && RUST_TMPDIR=/app/tmp rustc -o /app/program /app/Main.rs && /app/program < /app/input.txt'`,
+      `/bin/sh -c '${compileCommand} && ${executeCommand}'`,
     ].join(" ");
 
-    console.log(`Executing Docker command: ${compileAndRunCommand}`);
+    console.log("Running command:", compileAndRunCommand); // Debugging log
 
-    exec(compileAndRunCommand, { timeout }, (error, stdout, stderr) => {
-      if (error) {
-        return reject({
-          stdout: stdout.trim(),
-          stderr: stderr.trim(),
-          message: `Execution error: ${error.message}`,
-        });
-      }
-      resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
-    });
+    executeCommandWithTimeout(compileAndRunCommand, timeout, stdin)
+      .then(resolve)
+      .catch(reject);
   });
 };
 
