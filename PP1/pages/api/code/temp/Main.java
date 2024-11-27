@@ -1,21 +1,22 @@
-// input example: ["a", "b"]
-const readline = require('readline');
+import java.util.Scanner;
+import java.util.ArrayList;
 
-// Create a readline interface for input/output
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+public class Main {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        ArrayList<String> inputs = new ArrayList<>();
 
-let inputs = [];
+        // Reading inputs
+        while(inputs.size() < 2) {
+            System.out.println("Please enter a name:");
+            inputs.add(scanner.nextLine());
+        }
 
-// Listen for each line of input
-rl.on('line', (input) => {
-  inputs.push(input); // Add the input to the array
+        // Processing and displaying the inputs
+        if (inputs.size() == 2) {
+            System.out.println("Hello, " + inputs.get(0) + " and " + inputs.get(1));
+        }
 
-  // Check if two inputs have been received
-  if (inputs.length === 2) {
-    console.log(`Hello, ${inputs[0]} and ${inputs[1]}`); // Process and display the inputs
-    rl.close(); // Close the readline interface
-  }
-});
+        scanner.close();
+    }
+}
