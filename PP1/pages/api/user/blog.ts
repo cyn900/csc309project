@@ -76,7 +76,7 @@ export default async function handler(
         },
       },
       orderBy: {
-        bID: "asc", // Order by blog ID in ascending order, so oldest blogs are shown first
+        bID: "desc", // new blog show first
       },
       skip: skip,
       take: pageSizeNum,

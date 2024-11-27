@@ -48,7 +48,8 @@ const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
           tags: true,
           user: true,
           blogs: true,
-        },
+        }
+
       });
 
       if (!template) {
@@ -138,6 +139,9 @@ const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
       },
       skip: (pageNum - 1) * pageSizeNum,
       take: pageSizeNum,
+      orderBy: {
+        tID:"desc"
+      }
     });
 
     // Calculate total pages
