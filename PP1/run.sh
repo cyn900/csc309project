@@ -20,7 +20,12 @@ REFRESH_EXPIRES_IN="7d"
 BCRYPT_SALT_ROUNDS=10
 EOL
 
+cd ./utils/docker
+
 chmod u+x ./build_docker_images.sh
 ./build_docker_images.sh
+
+cd ..
+cd ..
 
 npx next dev
