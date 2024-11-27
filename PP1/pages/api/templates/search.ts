@@ -16,7 +16,6 @@ export default async function handler(
       where: {
         title: {
           contains: search,
-          mode: 'insensitive',
         },
       },
       select: {
@@ -42,7 +41,6 @@ export default async function handler(
           where: {
             title: {
               contains: search,
-              mode: 'insensitive',
             },
           },
           select: {
