@@ -46,7 +46,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     conditions.push({ tags: { some: { value: { in: tagArray } } } });
   }
   if (templateArray.length > 0) {
-    conditions.push({ templates: { some: { title: { in: templateArray } } } });
+    conditions.push({
+      templates: {
+        some: {
+          title: {
+            contains: templateArray[0]
+          }
+        }
+      }
+    });
   }
 
   try {
@@ -69,8 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Post-filter to ensure all tags and templates are included
     const fullyMatchedBlogs = allBlogs.filter(blog => {
       const blogTags = blog.tags.map(t => t.value);
-      const blogTemplates = blog.templates.map(t => t.title);
-      return tagArray.every(tag => blogTags.includes(tag)) && templateArray.every(template => blogTemplates.includes(template));
+      return tagArray.every(tag => blogTags.includes(tag));
     });
 
     // Sorting and pagination
