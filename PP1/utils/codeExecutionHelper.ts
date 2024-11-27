@@ -35,6 +35,20 @@ const resolveTempDir = (): string => {
   return path.join(process.cwd(), "pages/api/code/temp");
 };
 
+const checkAndStopContainer = (containerName: string) => {
+  const stopCommand = `docker ps -q -f name=${containerName}`;
+  exec(stopCommand, (err, stdout) => {
+    if (!err && stdout.trim()) {
+      // If a container is found, stop and remove it
+      exec(`docker rm -f ${containerName}`, (err) => {
+        if (err) {
+          console.error(`Failed to remove container ${containerName}:`, err);
+        }
+      });
+    }
+  });
+};
+
 const executeCommandWithTimeout = (
   command: string,
   timeout: number,
@@ -125,13 +139,15 @@ const executeInterpretedCode = (
       matlab: `matlab -batch "run('/app/main.m')"`,
     };
 
+    const containerName = `code-runner-${language}-${uuidv4()}`;
+
     const command = [
       "docker",
       "run",
       "--rm",
       "-i", // Enable interactive mode for stdin
       "--name",
-      `code-runner-${language}-${uuidv4()}`,
+      `${containerName}`,
       "-v",
       `${tempDir}:/app`,
       `${language}-image`,
@@ -140,7 +156,10 @@ const executeInterpretedCode = (
 
     executeCommandWithTimeout(command, timeout, stdin)
       .then(resolve)
-      .catch(reject);
+      .catch((error) => {
+        checkAndStopContainer(containerName);
+        reject(error);
+      });
   });
 };
 
