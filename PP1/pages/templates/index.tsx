@@ -127,6 +127,22 @@ const CodeTemplateSearch: React.FC = () => {
     fetchTemplates();
   }, [searchParams.page, searchParams.pageSize]);
 
+  const getPageNumbers = (currentPage: number, totalPages: number) => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+  
+    if (currentPage <= 3) {
+      return [1, 2, 3, 4, '...', totalPages];
+    }
+  
+    if (currentPage >= totalPages - 2) {
+      return [1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+  
+    return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+  };
+  
   // Update handlePreviousTemplatePage and handleNextTemplatePage to use searchParams instead of metaData
   const handlePreviousTemplatePage = () => {
     if (searchParams.page > 1) {
@@ -621,22 +637,35 @@ const CodeTemplateSearch: React.FC = () => {
                     </button>
 
                     {/* Page numbers */}
-                    {[...Array(metaData.totalPages)].map((_, idx) => (
-                      <button
-                        key={idx + 1}
-                        onClick={() => handlePageChange(idx + 1)}
-                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
-                          searchParams.page === idx + 1
-                            ? isDarkMode
-                              ? "bg-gray-700 text-white"
-                              : "bg-blue-600 text-white"
-                            : isDarkMode
-                            ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                            : "bg-white text-gray-700 hover:bg-gray-50"
-                        }`}
-                      >
-                        {idx + 1}
-                      </button>
+                    {getPageNumbers(searchParams.page, metaData.totalPages).map((pageNum, idx) => (
+                      pageNum === '...' ? (
+                        <span
+                          key={`ellipsis-${idx}`}
+                          className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                            isDarkMode
+                              ? "bg-gray-800 text-gray-300"
+                              : "bg-white text-gray-700"
+                          }`}
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={pageNum}
+                          onClick={() => typeof pageNum === 'number' && handlePageChange(pageNum)}
+                          className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                            searchParams.page === pageNum
+                              ? isDarkMode
+                                ? "bg-gray-700 text-white"
+                                : "bg-blue-600 text-white"
+                              : isDarkMode
+                              ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                              : "bg-white text-gray-700 hover:bg-gray-50"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      )
                     ))}
 
                     <button

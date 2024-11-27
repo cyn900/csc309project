@@ -35,6 +35,22 @@ interface PaginationInfo {
   totalItems: number;
 }
 
+const getPageNumbers = (currentPage: number, totalPages: number) => {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  if (currentPage <= 3) {
+    return [1, 2, 3, 4, '...', totalPages];
+  }
+
+  if (currentPage >= totalPages - 2) {
+    return [1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  }
+
+  return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+};
+
 const BlogsPage = () => {
   const router = useRouter();
   const { isDarkMode, toggleTheme } = useTheme();
@@ -917,12 +933,12 @@ const BlogsPage = () => {
                 <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
               </button>
               {/* Page numbers */}
-              {[...Array(pagination.totalPages)].map((_, idx) => (
+              {getPageNumbers(searchParams.page, pagination.totalPages).map((pageNumber, index) => (
                 <button
-                  key={idx + 1}
-                  onClick={() => handlePageChange(idx + 1)}
+                  key={index}
+                  onClick={() => typeof pageNumber === 'number' && handlePageChange(pageNumber)}
                   className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
-                    searchParams.page === idx + 1
+                    searchParams.page === pageNumber
                       ? isDarkMode
                         ? "bg-gray-700 text-white"
                         : "bg-blue-600 text-white"
@@ -931,7 +947,7 @@ const BlogsPage = () => {
                       : "bg-white text-gray-700 hover:bg-gray-50"
                   }`}
                 >
-                  {idx + 1}
+                  {pageNumber}
                 </button>
               ))}
               <button
