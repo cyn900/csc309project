@@ -107,6 +107,11 @@ const CodeExecution: React.FC = () => {
   };
 
   const handleCreateTemplate = () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      alert("Please log in to create a template");
+      return;
+    }
     // Store the current code execution state in localStorage
     const templateData = {
       code: code,
