@@ -1,8 +1,10 @@
-# Open input.txt and read its contents
-input_file <- file("stdin")
-input <- readLines(input_file, warn = FALSE)
-close(input_file)
+# Read input from stdin
+inputs <- readLines(con = "stdin", n = -1)
 
-# Output the content
-cat("You entered:\n")
-print(input)
+# Print the inputs
+if (length(inputs) == 0) {
+  cat("No inputs provided!\n")
+} else {
+  cat("You entered:\n")
+  cat(inputs, sep = "\n")
+}
