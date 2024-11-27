@@ -112,10 +112,12 @@ const MyTemplates = () => {
                     isDarkMode ? "bg-gray-800" : "bg-white"
                   } p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-200 group`}
                 >
-                  <h3 className={`text-xl font-semibold mb-3 group-hover:text-blue-500 transition-colors ${
-                    isDarkMode ? "text-white" : "text-gray-900"
-                  }`}>
-                    {template.title}
+                  <h3
+                    className={`text-xl font-semibold mb-3 group-hover:text-blue-500 transition-colors ${
+                      isDarkMode ? "text-white" : "text-gray-900"
+                    }`}
+                  >
+                    {template.title.slice(0, 25)}{template.title.length > 25 && '...'}
                   </h3>
                   <p className={`text-sm mb-4 line-clamp-2 ${
                     isDarkMode ? "text-gray-300" : "text-gray-600"
@@ -129,7 +131,7 @@ const MyTemplates = () => {
                         className={`px-3 py-1 rounded-full text-sm ${
                           isDarkMode
                             ? 'bg-blue-600 text-white'
-                            : 'bg-blue-100 text-blue-600'
+                            : 'bg-blue-600 text-white'
                         }`}
                       >
                         {tag.value}

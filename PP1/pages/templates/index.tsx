@@ -532,7 +532,7 @@ const CodeTemplateSearch: React.FC = () => {
 
                   {/* Template Content */}
                   <Link href={`/templates/${template.tID}`}>
-                    <h3 className="text-xl font-semibold mt-2">{template.title}</h3>
+                    <h3 className="text-xl font-semibold mt-2">{template.title.slice(0, 25)}{template.title.length > 25 && '...'}</h3>
                     <p className={`mt-2 ${isDarkMode ? "text-gray-300" : "text-gray-600"} line-clamp-3`}>
                       {template.explanation}
                     </p>
