@@ -1,40 +1,70 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Scriptorium
 
-## Getting Started
+Scriptorium is an innovative online platform inspired by the ancient concept of a scriptorium, a place where manuscripts were crafted and preserved. Modernized for the digital age, Scriptorium enables users to write, execute, and share code in multiple programming languages in a secure and intuitive environment.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### User Authentication
+- **Sign up, log in, and log out** with a secure JWT setup.
+- **Edit profile** including first and last name, email, profile picture, and phone number.
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+### Code Writing and Execution
+- **Syntax highlighting** for various programming languages (e.g., C, C++, Java, Python, JavaScript).
+- **Real-time code execution** with output displayed immediately.
+- **Standard input support** for testing programs requiring user input.
+- **Error handling** for compile errors, runtime errors, and timeouts.
+- **Secure execution environment** using Docker to sandbox user code.
+- **Resource limits** on execution to prevent abuse (e.g., infinite loops, memory hogs).
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+### Code Templates
+- **Save code templates** with a title, explanation, and tags.
+- **View and search templates** by title, tags, or content.
+- **Edit or delete templates** as needed.
+- **Fork templates** to create new versions with a notification indicating the fork.
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+### Blog Posts
+- **Create, edit, and delete blog posts** with links to code templates.
+- **Search and browse posts** by title, content, tags, or linked code templates.
+- **Engage with posts** through comments, replies, and upvotes/downvotes.
+- **View related blog posts** on code template pages.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+### Reporting and Administration
+- **Report inappropriate content** with additional explanations.
+- **Sort content by report count** for easy moderation.
+- **Hide inappropriate content** from users (visible only to authors with flags).
 
-## Learn More
+### User Experience
+- **Responsive design** for all devices (monitors, laptops, tablets, mobile).
+- **Dark and light themes** toggle for better user comfort.
+- **Intuitive navigation** with a single-page experience, front-end validations, and clean re-rendering.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Technologies Used
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+### Backend
+- **Framework**: Next.js
+- **Database**: Prisma ORM with SQLite/PostgreSQL
+- **API**: RESTful API
+- **Sandboxing**: Docker for secure code execution
 
-## Deploy on Vercel
+### Frontend
+- **Framework**: React
+- **Styling**: TailwindCSS
+- **TypeScript**: Ensures type safety and clean code
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Deployment
+- **Docker**: Ensures security, portability, and scalability
+- **Environment**: Ubuntu 22.04 with Node.js 20+
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+---
+
+## License
+This project is licensed under the MIT License.
+
+---
+
+## Acknowledgments
+- Made by William Nhut Lam and Cynthia Zhou
