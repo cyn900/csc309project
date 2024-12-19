@@ -1,6 +1,6 @@
 # Scriptorium
 
-Scriptorium is an innovative online platform inspired by the ancient concept of a scriptorium, a place where manuscripts were crafted and preserved. Modernized for the digital age, Scriptorium enables users to write, execute, and share code in multiple programming languages in a secure and intuitive environment.
+Scriptorium is an innovative online platform that enables users to write, execute, and share code in multiple programming languages in a secure and intuitive environment.
 
 ---
 
